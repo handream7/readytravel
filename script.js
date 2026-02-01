@@ -15,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
+// 사용자 고정 (localStorage 활용)
 let currentUser = localStorage.getItem('readyTravelUser') || '강민성';
 let currentTravel = '첫여행';
 let categories = [];
@@ -88,14 +89,14 @@ window.addNewTravel = () => {
     if (name) set(ref(database, `travelNames/${name}`), true);
 };
 
-// [수정] 모든 여행이 공유하는 globalSavedLists 경로에 저장
+// 모든 여행이 공유하는 globalSavedLists에 저장
 window.saveCurrentList = () => {
     const versionName = prompt("저장할 버전 이름을 입력하세요 (모든 여행에서 공유됨):");
     if (!versionName) return;
     get(ref(database, `travels/${currentTravel}/${currentUser}/current`)).then((snap) => {
         if (snap.exists()) {
             set(ref(database, `globalSavedLists/${currentUser}/${versionName}`), snap.val())
-                .then(() => alert(`'${versionName}' 저장 완료! 이제 다른 여행에서도 불러올 수 있습니다.`));
+                .then(() => alert(`'${versionName}' 저장 완료! 다른 여행에서도 불러올 수 있습니다.`));
         } else alert("저장할 내용이 없습니다.");
     });
 };
@@ -149,7 +150,7 @@ window.saveItem = () => {
     });
 };
 
-// [수정] globalSavedLists에서 버전 목록을 가져옴
+// 글로벌 저장소에서 목록 불러오기
 window.openLoadModal = () => {
     onValue(ref(database, `globalSavedLists/${currentUser}`), (snap) => {
         const display = document.getElementById('savedVersionsDisplay');
@@ -183,6 +184,32 @@ window.confirmLoadVersion = () => {
         set(ref(database, `travels/${currentTravel}/${currentUser}/current`), snap.val());
         closeModal('loadModal');
     });
+};
+
+// 이름 수정 로직
+window.confirmEdit = (cat, oldItem = null) => {
+    const oldName = oldItem ? oldItem : cat;
+    const newName = prompt("새로운 이름을 입력하세요:", oldName);
+    
+    if (!newName || newName === oldName) return;
+
+    if (oldItem) {
+        get(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}/${oldItem}`)).then(snap => {
+            const data = snap.val();
+            const updates = {};
+            updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${newName}`] = data;
+            updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${oldItem}`] = null;
+            update(ref(database), updates);
+        });
+    } else {
+        get(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}`)).then(snap => {
+            const data = snap.val();
+            const updates = {};
+            updates[`travels/${currentTravel}/${currentUser}/current/${newName}`] = data;
+            updates[`travels/${currentTravel}/${currentUser}/current/${cat}`] = null;
+            update(ref(database), updates);
+        });
+    }
 };
 
 function getAllExistingItems() {
@@ -241,10 +268,7 @@ window.uploadBulkCategories = () => {
             if (shouldNumber) allCats.push(finalName);
             updates[`travels/${currentTravel}/${currentUser}/current/${finalName}/_isCategory`] = { index: categories.length + idx };
         });
-        update(ref(database), updates).then(() => {
-            document.getElementById('bulkCategoryText').value = '';
-            alert("카테고리 처리 완료!");
-        });
+        update(ref(database), updates);
     });
 };
 
@@ -268,10 +292,7 @@ window.uploadBulkItems = () => {
             if (shouldNumber) currentAll.push(finalName);
             updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${finalName}`] = { out: 'X', in: 'X', index: catItemCount + idx };
         });
-        update(ref(database), updates).then(() => {
-            document.getElementById('bulkItemText').value = '';
-            alert("아이템 처리 완료!");
-        });
+        update(ref(database), updates);
     });
 };
 
@@ -317,6 +338,7 @@ window.loadData = () => {
                 <td colspan="3"><div class="name-cell">
                 <button class="fold-btn" onclick="toggleFold(event, '${cat}')" ontouchstart="toggleFold(event, '${cat}')">${isFolded ? '▶' : '▼'}</button>
                 <span class="row-num">${cIdx+1}.</span><span class="name-text">${cat}</span>
+                <button class="mini-edit-btn" onclick="confirmEdit('${cat}')">✎</button>
                 <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button></div></td></tr>`;
             
             const sortedItems = Object.keys(data[cat])
@@ -328,6 +350,7 @@ window.loadData = () => {
                 tbody.innerHTML += `<tr draggable="true" data-type="item" data-category="${cat}" data-id="${item}" class="${isFolded ? 'hidden-item' : ''}">
                     <td><div class="name-cell" style="padding-left: 32px;">
                     <span class="row-num">${iIdx+1})</span><span class="name-text">${item}</span>
+                    <button class="mini-edit-btn" onclick="confirmEdit('${cat}', '${item}')">✎</button>
                     <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button></div></td>
                     <td class="status-col"><button class="status-btn status-${vals.out || 'X'}" onclick="updateStatus('${cat}', '${item}', 'out', '${vals.out || 'X'}')">${vals.out || 'X'}</button></td>
                     <td class="status-col"><button class="status-btn status-${vals.in || 'X'}" onclick="updateStatus('${cat}', '${item}', 'in', '${vals.in || 'X'}')">${vals.in || 'X'}</button></td></tr>`;
@@ -397,13 +420,11 @@ function addDragEvents() {
             e.preventDefault();
             onDragMove(e.clientY, e.target.closest('tr'));
         };
-
         row.addEventListener('touchstart', (e) => {
             if (isLocked) return;
             if (e.target.closest('button') || e.target.closest('select') || e.target.closest('textarea')) return;
             onDragStart(row);
         }, { passive: false });
-
         row.addEventListener('touchmove', (e) => {
             if (isLocked || draggedRows.length === 0) return;
             e.preventDefault();
@@ -411,7 +432,6 @@ function addDragEvents() {
             const target = document.elementFromPoint(e.touches[0].clientX, touchY)?.closest('tr');
             onDragMove(touchY, target);
         }, { passive: false });
-
         row.addEventListener('touchend', onDragEnd);
     });
 }
