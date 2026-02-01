@@ -15,7 +15,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// 사용자 고정 (localStorage 활용)
 let currentUser = localStorage.getItem('readyTravelUser') || '강민성';
 let currentTravel = '첫여행';
 let categories = [];
@@ -89,7 +88,6 @@ window.addNewTravel = () => {
     if (name) set(ref(database, `travelNames/${name}`), true);
 };
 
-// 모든 여행이 공유하는 globalSavedLists에 저장
 window.saveCurrentList = () => {
     const versionName = prompt("저장할 버전 이름을 입력하세요 (모든 여행에서 공유됨):");
     if (!versionName) return;
@@ -150,7 +148,6 @@ window.saveItem = () => {
     });
 };
 
-// 글로벌 저장소에서 목록 불러오기
 window.openLoadModal = () => {
     onValue(ref(database, `globalSavedLists/${currentUser}`), (snap) => {
         const display = document.getElementById('savedVersionsDisplay');
@@ -186,7 +183,6 @@ window.confirmLoadVersion = () => {
     });
 };
 
-// 이름 수정 로직
 window.confirmEdit = (cat, oldItem = null) => {
     const oldName = oldItem ? oldItem : cat;
     const newName = prompt("새로운 이름을 입력하세요:", oldName);
@@ -210,6 +206,40 @@ window.confirmEdit = (cat, oldItem = null) => {
             update(ref(database), updates);
         });
     }
+};
+
+// [추가] 텍스트 파일로 다운로드하는 함수
+window.downloadAsTxt = () => {
+    if (!currentDataSnapshot) return alert("다운로드할 데이터가 없습니다.");
+
+    let content = `[ReadyTravel] ${currentTravel} - ${currentUser} 체크리스트\n\n`;
+    
+    const sortedCats = Object.keys(currentDataSnapshot)
+        .filter(cat => currentDataSnapshot[cat]._isCategory)
+        .sort((a, b) => (currentDataSnapshot[a]._isCategory.index || 0) - (currentDataSnapshot[b]._isCategory.index || 0));
+
+    sortedCats.forEach(cat => {
+        content += `▶ ${cat}\n`; // 카테고리 이름 (번호 제외)
+        
+        const sortedItems = Object.keys(currentDataSnapshot[cat])
+            .filter(k => k !== '_isCategory')
+            .sort((a, b) => (currentDataSnapshot[cat][a].index || 0) - (currentDataSnapshot[cat][b].index || 0));
+
+        sortedItems.forEach(item => {
+            content += `- ${item}\n`; // 아이템 이름 (번호 제외)
+        });
+        content += `\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `readytravel_${currentTravel}_${currentUser}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 };
 
 function getAllExistingItems() {

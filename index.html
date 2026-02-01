@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>여행 체크리스트 - ReadyTravel</title>
+    <title>ReadyTravel - 여행 체크리스트</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -37,6 +37,7 @@
                 <button class="btn-main" onclick="openCategoryModal()">카테고리+</button>
                 <button class="btn-main" onclick="addItem()">아이템+</button>
                 <button id="lockBtn" class="btn-lock" onclick="toggleLock()">순서잠금 🔒</button>
+                <button class="btn-sub btn-download" onclick="downloadAsTxt()">다운 📥</button>
             </div>
         </div>
     </header>
@@ -89,7 +90,7 @@
             <h3>데이터 통합 관리</h3>
             <div class="load-stack">
                 <div class="grid-col">
-                    <h4>📁 저장된 버전 목록</h4>
+                    <h4>📁 저장된 버전 목록 (글로벌)</h4>
                     <ul id="savedVersionsDisplay" class="data-list version-list"></ul>
                     <button class="btn-load full-width-btn" onclick="confirmLoadVersion()">버전 불러오기</button>
                 </div>

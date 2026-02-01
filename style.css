@@ -67,6 +67,9 @@ button {
 .btn-lock { background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
 .btn-lock.unlocked { background-color: #fff7ed; color: #ea580c; border: 1px solid #fdba74; }
 
+/* 다운로드 버튼 스타일 */
+.btn-download { background-color: #ecfdf5; color: #059669; border: 1px solid #d1fae5; }
+
 #travelSelect, select, input, textarea {
     padding: 10px;
     border-radius: 8px;
@@ -122,23 +125,7 @@ body.is-unlocked .category-row .name-text::before { content: '≡'; margin-right
 .status-X { color: #cbd5e1; }
 
 .mini-del-btn { background: #fee2e2; color: #ef4444; border: none; width: 22px; height: 22px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-
-/* 수정 버튼 스타일 추가 */
-.mini-edit-btn { 
-    background: #e0f2fe; 
-    color: #0284c7; 
-    border: none; 
-    width: 22px; 
-    height: 22px; 
-    border-radius: 4px; 
-    font-size: 10px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    cursor: pointer; 
-    flex-shrink: 0; 
-    margin-left: 4px; 
-}
+.mini-edit-btn { background: #e0f2fe; color: #0284c7; border: none; width: 22px; height: 22px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-left: 4px; }
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
 .modal-content { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 450px; }
