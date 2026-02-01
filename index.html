@@ -90,23 +90,23 @@
                 <div class="grid-col">
                     <h4>📁 저장된 버전 목록</h4>
                     <ul id="savedVersionsDisplay" class="data-list"></ul>
-                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="confirmLoadVersion()">버전 불러오기</button>
+                    <button class="btn-load full-width-btn" onclick="confirmLoadVersion()">버전 불러오기</button>
                 </div>
                 <div class="grid-col">
                     <h4>📂 카테고리 한번에</h4>
                     <textarea id="bulkCategoryText" rows="6" placeholder="의류&#10;세면도구"></textarea>
-                    <button class="btn-main" style="width:100%; margin-top:10px;" onclick="uploadBulkCategories()">생성</button>
+                    <button class="btn-main full-width-btn" onclick="uploadBulkCategories()">생성</button>
                 </div>
                 <div class="grid-col">
                     <h4>📦 아이템 한번에</h4>
                     <p class="guide">카테고리 선택 후 엔터치고 목록 입력</p>
-                    <select id="bulkItemCategorySelect" style="width: 100%; margin-bottom: 10px;"></select>
+                    <select id="bulkItemCategorySelect" class="full-width-input"></select>
                     <textarea id="bulkItemText" rows="6" placeholder="여권&#10;보조배터리"></textarea>
-                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="uploadBulkItems()">생성</button>
+                    <button class="btn-load full-width-btn" onclick="uploadBulkItems()">생성</button>
                 </div>
             </div>
-            <div class="modal-buttons">
-                <button class="btn-sub" onclick="closeModal('loadModal')">닫기</button>
+            <div class="modal-buttons vertical-buttons">
+                <button class="btn-sub full-width-btn" onclick="closeModal('loadModal')">닫기</button>
             </div>
         </div>
     </div>

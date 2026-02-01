@@ -232,7 +232,7 @@ function addDragEvents() {
     const onDragStart = (target) => {
         target.classList.add('dragging');
         if (target.dataset.type === 'category') {
-            draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
+            draggedRows = [target, ...document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`)];
         } else {
             draggedRows = [target];
         }
@@ -251,7 +251,7 @@ function addDragEvents() {
         const offset = y - bounding.top;
 
         if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-            const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
+            const targetItems = document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`);
             const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
             offset > bounding.height / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
         } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
