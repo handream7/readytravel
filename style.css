@@ -8,6 +8,7 @@ body {
     color: #334155;
     max-width: 800px;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation; /* 기본 터치 동작 최적화 */
 }
 
 header {
@@ -73,27 +74,35 @@ table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 th { background: #f8fbff; color: #475569; font-size: 0.85rem; padding: 12px 2px; border-bottom: 2px solid #eef2f7; }
 td { padding: 10px 5px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
 
-tr.dragging { opacity: 0.5; background-color: #e0edff !important; }
+/* 드래그 상태 */
+tr.dragging { opacity: 0.4; background-color: #e0edff !important; }
 .status-col { width: 60px; text-align: center; }
 .name-cell { display: flex; align-items: center; justify-content: flex-start; gap: 8px; }
 .name-text { font-size: 0.95rem; font-weight: 600; word-break: break-all; }
 .row-num { color: #94a3b8; font-size: 0.85rem; min-width: 25px; }
 
 .category-row td { background-color: #f0f7ff; color: #007bff; }
-.category-row .name-text::before { content: '≡'; margin-right: 8px; color: #007bff; cursor: grab; }
+.category-row .name-text::before { content: '≡'; margin-right: 8px; color: #007bff; cursor: grab; font-weight: bold; }
 
 .status-btn { width: 38px; height: 38px; font-size: 16px; border-radius: 8px; border: 2px solid #e2e8f0; background: white; }
 .status-O { color: white; background: #10b981; border-color: #10b981; }
 .status-X { color: #cbd5e1; }
 
-.mini-del-btn { background: #fee2e2; color: #ef4444; border: none; width: 20px; height: 20px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+.mini-del-btn { background: #fee2e2; color: #ef4444; border: none; width: 22px; height: 22px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
 .modal-content { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 400px; }
 .modal-large { max-width: 750px; width: 95%; }
 
 .data-list { list-style: none; padding: 0; max-height: 150px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; margin: 10px 0; }
-.data-list li { padding: 10px; border-bottom: 1px solid #f9f9f9; cursor: pointer; font-size: 0.85rem; }
+.data-list li { padding: 12px; border-bottom: 1px solid #f9f9f9; cursor: pointer; font-size: 0.9rem; }
 .data-list li.selected { background: #007bff; color: white; }
+
+.cat-preview-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cat-tag { background: #e0edff; color: #007bff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+
 .load-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px; }
-@media (max-width: 768px) { .load-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { 
+    .load-grid { grid-template-columns: 1fr; }
+    .status-btn { width: 42px; height: 42px; } /* 모바일에서 터치 영역 확대 */
+}

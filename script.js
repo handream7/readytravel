@@ -24,7 +24,6 @@ let currentUnsubscribe = null;
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
-// 여행 목록 드롭다운 동기화
 onValue(ref(database, 'travelNames'), (snapshot) => {
     const data = snapshot.val();
     const select = document.getElementById('travelSelect');
@@ -166,12 +165,15 @@ window.closeModal = (id) => { document.getElementById(id).style.display = 'none'
 
 function refreshSelectMenus() {
     const options = categories.map(c => `<option value="${c}">${c}</option>`).join('') + `<option value="미분류">없음</option>`;
-    document.getElementById('categorySelect').innerHTML = options;
-    document.getElementById('bulkItemCategorySelect').innerHTML = options;
+    const catSelect = document.getElementById('categorySelect');
+    const bulkSelect = document.getElementById('bulkItemCategorySelect');
+    if (catSelect) catSelect.innerHTML = options;
+    if (bulkSelect) bulkSelect.innerHTML = options;
 }
 
 window.loadData = () => {
-    currentTravel = document.getElementById('travelSelect').value;
+    const select = document.getElementById('travelSelect');
+    if (select && select.value) currentTravel = select.value;
     if (currentUnsubscribe) currentUnsubscribe();
     currentUnsubscribe = onValue(ref(database, `travels/${currentTravel}/${currentUser}/current`), (snapshot) => {
         const data = snapshot.val();
@@ -222,33 +224,67 @@ async function syncOrderToDB() {
     await update(ref(database), updates);
 }
 
+// 터치 이벤트 대응 드래그 앤 드롭
 function addDragEvents() {
     const rows = document.querySelectorAll('#checklistBody tr');
     let draggedRows = [];
+    let initialTouchY = 0;
+
+    const onDragStart = (target) => {
+        target.classList.add('dragging');
+        if (target.dataset.type === 'category') {
+            draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
+        } else {
+            draggedRows = [target];
+        }
+        draggedRows.forEach(r => r.classList.add('dragging'));
+    };
+
+    const onDragEnd = async () => {
+        draggedRows.forEach(r => r.classList.remove('dragging'));
+        draggedRows = [];
+        await syncOrderToDB();
+    };
+
+    const onDragMove = (y, target) => {
+        if (!target || draggedRows.includes(target)) return;
+        const bounding = target.getBoundingClientRect();
+        const offset = y - bounding.top;
+
+        if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
+            const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
+            const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
+            offset > bounding.height / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
+        } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
+            offset > bounding.height / 2 ? target.after(draggedRows[0]) : target.before(draggedRows[0]);
+        }
+    };
+
     rows.forEach(row => {
-        row.ondragstart = (e) => {
-            row.classList.add('dragging');
-            if (row.dataset.type === 'category') {
-                draggedRows = [row, ...document.querySelectorAll(`tr[data-type="item"][data-category="${row.dataset.id}"]`)];
-            } else draggedRows = [row];
-            draggedRows.forEach(r => r.classList.add('dragging'));
-        };
-        row.ondragend = () => {
-            draggedRows.forEach(r => r.classList.remove('dragging'));
-            syncOrderToDB();
-        };
+        // 데스크탑 이벤트
+        row.ondragstart = (e) => onDragStart(row);
+        row.ondragend = onDragEnd;
         row.ondragover = (e) => {
             e.preventDefault();
-            const target = e.target.closest('tr');
-            if (!target || draggedRows.includes(target)) return;
-            if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-                const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
-                const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
-                e.clientY - target.getBoundingClientRect().top > target.offsetHeight / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
-            } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
-                e.clientY - target.getBoundingClientRect().top > target.offsetHeight / 2 ? target.after(draggedRows[0]) : target.before(draggedRows[0]);
-            }
+            onDragMove(e.clientY, e.target.closest('tr'));
         };
+
+        // 모바일 터치 이벤트
+        row.addEventListener('touchstart', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+            initialTouchY = e.touches[0].clientY;
+            onDragStart(row);
+        }, { passive: false });
+
+        row.addEventListener('touchmove', (e) => {
+            if (draggedRows.length === 0) return;
+            e.preventDefault(); // 스크롤 방지
+            const touchY = e.touches[0].clientY;
+            const target = document.elementFromPoint(e.touches[0].clientX, touchY)?.closest('tr');
+            onDragMove(touchY, target);
+        }, { passive: false });
+
+        row.addEventListener('touchend', onDragEnd);
     });
 }
 
