@@ -64,7 +64,6 @@ button {
 .btn-save { background-color: #10b981; color: white; }
 .btn-reset { background-color: #fee2e2; color: #ef4444; border: 1px solid #fecaca; }
 
-/* 잠금 버튼 스타일 */
 .btn-lock { background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
 .btn-lock.unlocked { background-color: #fff7ed; color: #ea580c; border: 1px solid #fdba74; }
 
@@ -96,21 +95,13 @@ tr.dragging { opacity: 0.4; background-color: #e0edff !important; }
 .row-num { color: #94a3b8; font-size: 0.85rem; min-width: 25px; }
 
 .category-row td { background-color: #f0f7ff; color: #007bff; }
-
-/* 잠금 해제 상태에서만 핸들 표시 */
-body.is-unlocked .category-row .name-text::before { 
-    content: '≡'; 
-    margin-right: 8px; 
-    color: #007bff; 
-    cursor: grab; 
-    font-weight: bold; 
-}
+body.is-unlocked .category-row .name-text::before { content: '≡'; margin-right: 8px; color: #007bff; cursor: grab; font-weight: bold; }
 
 .status-btn { width: 38px; height: 38px; font-size: 16px; border-radius: 8px; border: 2px solid #e2e8f0; background: white; }
 .status-O { color: white; background: #10b981; border-color: #10b981; }
 .status-X { color: #cbd5e1; }
 
-.mini-del-btn { background: #fee2e2; color: #ef4444; border: none; width: 22px; height: 22px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.mini-del-btn { background: #fee2e2; color: #ef4444; border: none; width: 22px; height: 22px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
 .modal-content { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 450px; }
@@ -122,9 +113,9 @@ body.is-unlocked .category-row .name-text::before {
 .grid-col { background: #f8fbff; padding: 12px; border-radius: 10px; border: 1px solid #eef2f7; }
 .grid-col h4 { margin: 0 0 8px 0; font-size: 0.95rem; color: #334155; }
 
-.data-list { list-style: none; padding: 0; max-height: 150px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; background: white; }
-.data-list li { padding: 12px; border-bottom: 1px solid #f9f9f9; cursor: pointer; font-size: 0.9rem; }
-.data-list li.selected { background: #007bff; color: white; }
+.data-list { list-style: none; padding: 0; max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; background: white; }
+.data-list li { padding: 12px; border-bottom: 1px solid #f9f9f9; cursor: pointer; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+.data-list li.selected { background: #e0edff; color: #007bff; font-weight: bold; }
 
 .cat-preview-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .cat-tag { background: #e0edff; color: #007bff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }

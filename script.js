@@ -21,7 +21,7 @@ let categories = [];
 let travels = [];
 let selectedVersionToLoad = '';
 let currentUnsubscribe = null;
-let isLocked = true; // 순서 잠금 상태 변수 추가
+let isLocked = true;
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
@@ -38,7 +38,6 @@ onValue(ref(database, 'travelNames'), (snapshot) => {
     currentTravel = select.value;
 });
 
-// 순서 잠금 토글 함수
 window.toggleLock = () => {
     isLocked = !isLocked;
     const lockBtn = document.getElementById('lockBtn');
@@ -122,7 +121,11 @@ window.openLoadModal = () => {
     onValue(ref(database, `travels/${currentTravel}/${currentUser}/savedLists`), (snap) => {
         const display = document.getElementById('savedVersionsDisplay');
         if (snap.exists()) {
-            display.innerHTML = Object.keys(snap.val()).map(v => `<li onclick="setVersionToLoad('${v}')">📄 ${v}</li>`).join('');
+            display.innerHTML = Object.keys(snap.val()).map(v => 
+                `<li id="ver-${v}" onclick="setVersionToLoad('${v}')">
+                    <span>📄 ${v}</span>
+                    <button class="mini-del-btn" onclick="deleteVersion(event, '${v}')">X</button>
+                </li>`).join('');
         } else display.innerHTML = '<li>저장된 버전 없음</li>';
     });
     refreshSelectMenus();
@@ -131,7 +134,18 @@ window.openLoadModal = () => {
 
 window.setVersionToLoad = (name) => {
     selectedVersionToLoad = name;
-    document.querySelectorAll('#savedVersionsDisplay li').forEach(li => li.classList.toggle('selected', li.innerText.includes(name)));
+    document.querySelectorAll('#savedVersionsDisplay li').forEach(li => li.classList.toggle('selected', li.id === `ver-${name}`));
+};
+
+// 버전 개별 삭제 기능 추가
+window.deleteVersion = (event, name) => {
+    event.stopPropagation(); // 부모 li의 클릭 이벤트(선택) 방지
+    if (confirm(`'${name}' 버전을 삭제하시겠습니까?`)) {
+        remove(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${name}`))
+            .then(() => {
+                if (selectedVersionToLoad === name) selectedVersionToLoad = '';
+            });
+    }
 };
 
 window.confirmLoadVersion = () => {
@@ -246,7 +260,7 @@ function addDragEvents() {
     let initialTouchY = 0;
 
     const onDragStart = (target) => {
-        if (isLocked) return; // 잠금 상태면 시작 안함
+        if (isLocked) return;
         target.classList.add('dragging');
         if (target.dataset.type === 'category') {
             draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
@@ -286,7 +300,7 @@ function addDragEvents() {
         };
 
         row.addEventListener('touchstart', (e) => {
-            if (isLocked) return; // 잠금 시 터치 이벤트 무시
+            if (isLocked) return;
             if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
             initialTouchY = e.touches[0].clientY;
             onDragStart(row);
