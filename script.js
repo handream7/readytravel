@@ -16,21 +16,36 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 let currentUser = '강민성';
-let currentTravel = 'first';
+let currentTravel = '첫여행';
 let categories = [];
-let travels = ['first'];
+let travels = ['첫여행'];
 let selectedTravelToLoad = '';
+let currentUnsubscribe = null;
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
+// 여행 목록 업데이트 및 드롭다운 관리
 onValue(ref(database, 'travelNames'), (snapshot) => {
     const data = snapshot.val();
+    const select = document.getElementById('travelSelect');
+    
     if (data) {
         travels = Object.keys(data);
-        const select = document.getElementById('travelSelect');
-        const currentVal = select.value;
-        select.innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
-        if (travels.includes(currentVal)) select.value = currentVal;
+    } else {
+        // 데이터가 아예 없는 경우 초기 구조 생성
+        travels = ['첫여행'];
+        set(ref(database, 'travelNames/첫여행'), true);
+    }
+
+    const currentVal = select.value || currentTravel;
+    select.innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
+    
+    if (travels.includes(currentVal)) {
+        select.value = currentVal;
+        currentTravel = currentVal;
+    } else {
+        select.value = travels[0];
+        currentTravel = travels[0];
     }
 });
 
@@ -54,6 +69,7 @@ window.addNewTravel = () => {
     const name = prompt("새 여행 이름을 입력하세요:");
     if (name) {
         set(ref(database, `travelNames/${name}`), true).then(() => {
+            document.getElementById('travelSelect').value = name;
             currentTravel = name;
             loadData();
         });
@@ -61,7 +77,7 @@ window.addNewTravel = () => {
 };
 
 window.saveCurrentList = () => {
-    const title = prompt("목록 저장 이름을 입력하세요:");
+    const title = prompt("목록 저장 이름을 입력하세요 (백업용):");
     if (!title) return;
     get(ref(database, `travels/${currentTravel}/${currentUser}`)).then((snapshot) => {
         if (snapshot.exists()) {
@@ -120,11 +136,17 @@ window.setSelectToLoad = (name) => {
 
 window.confirmLoadTravel = () => {
     if (!selectedTravelToLoad) return alert("여행을 선택하세요.");
-    if (confirm(`'${selectedTravelToLoad}' 목록을 불러오시겠습니까?`)) {
-        document.getElementById('travelSelect').value = selectedTravelToLoad;
-        currentTravel = selectedTravelToLoad;
-        loadData();
-        closeModal('loadModal');
+    if (confirm(`'${selectedTravelToLoad}'의 목록을 현재 작업 중인 '${currentTravel}' 여행으로 불러오시겠습니까?`)) {
+        get(ref(database, `travels/${selectedTravelToLoad}/${currentUser}`)).then((snapshot) => {
+            if (snapshot.exists()) {
+                set(ref(database, `travels/${currentTravel}/${currentUser}`), snapshot.val()).then(() => {
+                    alert("성공적으로 데이터를 불러왔습니다.");
+                    closeModal('loadModal');
+                });
+            } else {
+                alert("불러올 데이터가 없습니다.");
+            }
+        });
     }
 };
 
@@ -156,6 +178,7 @@ window.uploadBulkItems = () => {
 window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
 window.updateStatus = (category, item, field, currentVal) => {
+    if(!statusToggle[currentVal]) return; 
     set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${item}/${field}`), statusToggle[currentVal]);
 };
 
@@ -168,8 +191,12 @@ window.confirmDelete = (category, item = null) => {
 };
 
 window.loadData = () => {
-    currentTravel = document.getElementById('travelSelect').value;
-    onValue(ref(database, `travels/${currentTravel}/${currentUser}`), (snapshot) => {
+    const select = document.getElementById('travelSelect');
+    if (select && select.value) currentTravel = select.value;
+    
+    if (currentUnsubscribe) currentUnsubscribe();
+
+    currentUnsubscribe = onValue(ref(database, `travels/${currentTravel}/${currentUser}`), (snapshot) => {
         const data = snapshot.val();
         const tbody = document.getElementById('checklistBody');
         tbody.innerHTML = '';
@@ -177,6 +204,7 @@ window.loadData = () => {
         if (!data) { refreshSelectMenus(); return; }
 
         Object.keys(data).sort().forEach((cat, cIdx) => {
+            if (cat === '_isCategory') return;
             categories.push(cat);
             tbody.innerHTML += `
                 <tr class="category-row">
@@ -190,6 +218,9 @@ window.loadData = () => {
             
             Object.keys(data[cat]).filter(k => k !== '_isCategory').sort().forEach((item, iIdx) => {
                 const vals = data[cat][item];
+                const outVal = vals.out || 'X';
+                const inVal = vals.in || 'X';
+                
                 tbody.innerHTML += `
                     <tr>
                         <td>
@@ -198,8 +229,8 @@ window.loadData = () => {
                                 <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button>
                             </div>
                         </td>
-                        <td class="status-col"><button class="status-btn status-${vals.out}" onclick="updateStatus('${cat}', '${item}', 'out', '${vals.out}')">${vals.out}</button></td>
-                        <td class="status-col"><button class="status-btn status-${vals.in}" onclick="updateStatus('${cat}', '${item}', 'in', '${vals.in}')">${vals.in}</button></td>
+                        <td class="status-col"><button class="status-btn status-${outVal}" onclick="updateStatus('${cat}', '${item}', 'out', '${outVal}')">${outVal}</button></td>
+                        <td class="status-col"><button class="status-btn status-${inVal}" onclick="updateStatus('${cat}', '${item}', 'in', '${inVal}')">${inVal}</button></td>
                     </tr>`;
             });
         });
