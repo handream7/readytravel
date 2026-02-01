@@ -23,7 +23,6 @@ let selectedTravelToLoad = '';
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
-// 여행 목록 불러오기 (영구 저장용)
 onValue(ref(database, 'travelNames'), (snapshot) => {
     const data = snapshot.val();
     if (data) {
@@ -161,7 +160,7 @@ window.updateStatus = (category, item, field, currentVal) => {
 };
 
 window.confirmDelete = (category, item = null) => {
-    const msg = item ? `'${item}' 아이템을 삭제하시겠습니까?` : `'${category}' 카테고리를 삭제하시겠습니까?`;
+    const msg = item ? `'${item}' 삭제할까요?` : `'${category}' 삭제할까요?`;
     if (confirm(msg)) {
         const path = item ? `travels/${currentTravel}/${currentUser}/${category}/${item}` : `travels/${currentTravel}/${currentUser}/${category}`;
         remove(ref(database, path));
