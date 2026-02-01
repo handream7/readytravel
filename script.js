@@ -94,7 +94,7 @@ window.saveCurrentList = () => {
     get(ref(database, `travels/${currentTravel}/${currentUser}/current`)).then((snap) => {
         if (snap.exists()) {
             set(ref(database, `globalSavedLists/${currentUser}/${versionName}`), snap.val())
-                .then(() => alert(`'${versionName}' 저장 완료! 다른 여행에서도 불러올 수 있습니다.`));
+                .then(() => alert(`'${versionName}' 저장 완료!`));
         } else alert("저장할 내용이 없습니다.");
     });
 };
@@ -114,7 +114,15 @@ window.openCategoryModal = () => {
 window.saveCategory = () => {
     const name = document.getElementById('newCategoryName').value.trim();
     if (!name) return;
-    set(ref(database, `travels/${currentTravel}/${currentUser}/current/${name}/_isCategory`), { index: categories.length })
+    
+    let maxIdx = -1;
+    if(currentDataSnapshot) {
+        Object.values(currentDataSnapshot).forEach(catObj => {
+            if(catObj._isCategory && catObj._isCategory.index > maxIdx) maxIdx = catObj._isCategory.index;
+        });
+    }
+
+    set(ref(database, `travels/${currentTravel}/${currentUser}/current/${name}/_isCategory`), { index: maxIdx + 1 })
         .then(() => {
             document.getElementById('newCategoryName').value = '';
             closeModal('categoryModal');
@@ -139,12 +147,19 @@ window.saveItem = () => {
     }
 
     get(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}`)).then(snap => {
-        const idx = snap.exists() ? Object.keys(snap.val()).length : 0;
-        set(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}/${finalName}`), { out: 'X', in: 'X', index: idx })
-            .then(() => {
-                document.getElementById('newItemName').value = '';
-                closeModal('itemModal');
+        let maxItemIdx = -1;
+        if(snap.exists()){
+            Object.keys(snap.val()).forEach(key => {
+                if(key !== '_isCategory' && snap.val()[key].index > maxItemIdx) maxItemIdx = snap.val()[key].index;
             });
+        }
+        
+        set(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}/${finalName}`), { 
+            out: 'X', in: 'X', index: maxItemIdx + 1 
+        }).then(() => {
+            document.getElementById('newItemName').value = '';
+            closeModal('itemModal');
+        });
     });
 };
 
@@ -186,51 +201,39 @@ window.confirmLoadVersion = () => {
 window.confirmEdit = (cat, oldItem = null) => {
     const oldName = oldItem ? oldItem : cat;
     const newName = prompt("새로운 이름을 입력하세요:", oldName);
-    
     if (!newName || newName === oldName) return;
 
     if (oldItem) {
         get(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}/${oldItem}`)).then(snap => {
-            const data = snap.val();
             const updates = {};
-            updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${newName}`] = data;
+            updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${newName}`] = snap.val();
             updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${oldItem}`] = null;
             update(ref(database), updates);
         });
     } else {
         get(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}`)).then(snap => {
-            const data = snap.val();
             const updates = {};
-            updates[`travels/${currentTravel}/${currentUser}/current/${newName}`] = data;
+            updates[`travels/${currentTravel}/${currentUser}/current/${newName}`] = snap.val();
             updates[`travels/${currentTravel}/${currentUser}/current/${cat}`] = null;
             update(ref(database), updates);
         });
     }
 };
 
-// [추가] 텍스트 파일로 다운로드하는 함수
 window.downloadAsTxt = () => {
     if (!currentDataSnapshot) return alert("다운로드할 데이터가 없습니다.");
-
     let content = `[ReadyTravel] ${currentTravel} - ${currentUser} 체크리스트\n\n`;
-    
     const sortedCats = Object.keys(currentDataSnapshot)
         .filter(cat => currentDataSnapshot[cat]._isCategory)
         .sort((a, b) => (currentDataSnapshot[a]._isCategory.index || 0) - (currentDataSnapshot[b]._isCategory.index || 0));
-
     sortedCats.forEach(cat => {
-        content += `▶ ${cat}\n`; // 카테고리 이름 (번호 제외)
-        
+        content += `▶ ${cat}\n`;
         const sortedItems = Object.keys(currentDataSnapshot[cat])
             .filter(k => k !== '_isCategory')
             .sort((a, b) => (currentDataSnapshot[cat][a].index || 0) - (currentDataSnapshot[cat][b].index || 0));
-
-        sortedItems.forEach(item => {
-            content += `- ${item}\n`; // 아이템 이름 (번호 제외)
-        });
+        sortedItems.forEach(item => { content += `- ${item}\n`; });
         content += `\n`;
     });
-
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -247,9 +250,7 @@ function getAllExistingItems() {
     let items = [];
     Object.keys(currentDataSnapshot).forEach(cat => {
         const catData = currentDataSnapshot[cat];
-        Object.keys(catData).forEach(key => {
-            if (key !== '_isCategory') items.push(key);
-        });
+        Object.keys(catData).forEach(key => { if (key !== '_isCategory') items.push(key); });
     });
     return items;
 }
@@ -258,19 +259,15 @@ function getNumberedName(name, existingList) {
     let baseName = name.replace(/\(\d+\)$/, "").trim();
     let counter = 2;
     let newName = `${baseName}(${counter})`;
-    while (existingList.includes(newName)) {
-        counter++;
-        newName = `${baseName}(${counter})`;
-    }
+    while (existingList.includes(newName)) { counter++; newName = `${baseName}(${counter})`; }
     return newName;
 }
 
 function handleDuplicates(newItems, existingItems, callback) {
     const duplicates = newItems.filter(item => existingItems.includes(item));
     if (duplicates.length > 0) {
-        document.getElementById('dupMsg').innerHTML = `전체 목록 중 <b>${duplicates.length}개</b>의 중복 항목이 발견되었습니다.<br>(중복: ${duplicates.join(', ')})<br><br><b>중복 제외</b>: 이미 있는 것은 빼고 새로 입력한 것만 추가합니다.<br><b>숫자 붙여 추가</b>: 이름 뒤에 (2) 등을 붙여 강제로 추가합니다.`;
+        document.getElementById('dupMsg').innerHTML = `중복 항목이 발견되었습니다.<br>(중복: ${duplicates.join(', ')})<br><br><b>중복 제외</b>: 이미 있는 것은 빼고 추가.<br><b>숫자 붙여 추가</b>: 이름 뒤에 (2) 등을 붙여 추가.`;
         document.getElementById('duplicateModal').style.display = 'flex';
-        
         document.getElementById('btnRemoveDup').onclick = () => {
             const filtered = newItems.filter(item => !existingItems.includes(item));
             callback(filtered, false);
@@ -280,9 +277,7 @@ function handleDuplicates(newItems, existingItems, callback) {
             callback(newItems, true);
             closeModal('duplicateModal');
         };
-    } else {
-        callback(newItems, false);
-    }
+    } else { callback(newItems, false); }
 }
 
 window.uploadBulkCategories = () => {
@@ -291,14 +286,25 @@ window.uploadBulkCategories = () => {
     const cats = text.split('\n').map(c => c.trim()).filter(c => c !== "");
     
     handleDuplicates(cats, categories, (targetCats, shouldNumber) => {
+        let maxCatIdx = -1;
+        categories.forEach(cat => {
+            if(currentDataSnapshot[cat] && currentDataSnapshot[cat]._isCategory) {
+                const idx = currentDataSnapshot[cat]._isCategory.index;
+                if(idx > maxCatIdx) maxCatIdx = idx;
+            }
+        });
+
         const updates = {};
         let allCats = [...categories];
-        targetCats.forEach((c, idx) => {
+        targetCats.forEach((c, i) => {
             let finalName = (shouldNumber && categories.includes(c)) ? getNumberedName(c, allCats) : c;
             if (shouldNumber) allCats.push(finalName);
-            updates[`travels/${currentTravel}/${currentUser}/current/${finalName}/_isCategory`] = { index: categories.length + idx };
+            updates[`travels/${currentTravel}/${currentUser}/current/${finalName}/_isCategory`] = { index: maxCatIdx + 1 + i };
         });
-        update(ref(database), updates);
+        update(ref(database), updates).then(() => {
+            document.getElementById('bulkCategoryText').value = '';
+            alert("카테고리 일괄 생성이 완료되었습니다!");
+        });
     });
 };
 
@@ -307,22 +313,27 @@ window.uploadBulkItems = () => {
     const text = document.getElementById('bulkItemText').value;
     if (!text.trim()) return;
     const items = text.split('\n').map(i => i.trim()).filter(i => i !== "");
-
     const allExistingItems = getAllExistingItems();
 
     handleDuplicates(items, allExistingItems, (targetItems, shouldNumber) => {
+        let maxItemIdxInCat = -1;
+        if(currentDataSnapshot[cat]) {
+            Object.keys(currentDataSnapshot[cat]).forEach(key => {
+                if(key !== '_isCategory' && currentDataSnapshot[cat][key].index > maxItemIdxInCat) maxItemIdxInCat = currentDataSnapshot[cat][key].index;
+            });
+        }
+
         const updates = {};
         let currentAll = [...allExistingItems];
-        const catItemCount = currentDataSnapshot && currentDataSnapshot[cat] 
-            ? Object.keys(currentDataSnapshot[cat]).filter(k => k !== '_isCategory').length 
-            : 0;
-
-        targetItems.forEach((item, idx) => {
+        targetItems.forEach((item, i) => {
             let finalName = (shouldNumber && allExistingItems.includes(item)) ? getNumberedName(item, currentAll) : item;
             if (shouldNumber) currentAll.push(finalName);
-            updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${finalName}`] = { out: 'X', in: 'X', index: catItemCount + idx };
+            updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${finalName}`] = { out: 'X', in: 'X', index: maxItemIdxInCat + 1 + i };
         });
-        update(ref(database), updates);
+        update(ref(database), updates).then(() => {
+            document.getElementById('bulkItemText').value = '';
+            alert("아이템 일괄 생성이 완료되었습니다!");
+        });
     });
 };
 
@@ -410,46 +421,36 @@ async function syncOrderToDB() {
 function addDragEvents() {
     const rows = document.querySelectorAll('#checklistBody tr');
     let draggedRows = [];
-
     const onDragStart = (target) => {
         if (isLocked) return;
         target.classList.add('dragging');
         if (target.dataset.type === 'category') {
-            draggedRows = [target, ...document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`)];
-        } else {
-            draggedRows = [target];
-        }
+            draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
+        } else { draggedRows = [target]; }
         draggedRows.forEach(r => r.classList.add('dragging'));
     };
-
     const onDragEnd = async () => {
         if (draggedRows.length === 0) return;
         draggedRows.forEach(r => r.classList.remove('dragging'));
         draggedRows = [];
         await syncOrderToDB();
     };
-
     const onDragMove = (y, target) => {
         if (isLocked || !target || draggedRows.includes(target)) return;
         const bounding = target.getBoundingClientRect();
         const offset = y - bounding.top;
-
         if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-            const targetItems = document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`);
+            const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
             const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
             offset > bounding.height / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
         } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
             offset > bounding.height / 2 ? target.after(draggedRows[0]) : target.before(draggedRows[0]);
         }
     };
-
     rows.forEach(row => {
         row.ondragstart = () => onDragStart(row);
         row.ondragend = onDragEnd;
-        row.ondragover = (e) => {
-            e.preventDefault();
-            onDragMove(e.clientY, e.target.closest('tr'));
-        };
+        row.ondragover = (e) => { e.preventDefault(); onDragMove(e.clientY, e.target.closest('tr')); };
         row.addEventListener('touchstart', (e) => {
             if (isLocked) return;
             if (e.target.closest('button') || e.target.closest('select') || e.target.closest('textarea')) return;
@@ -465,5 +466,4 @@ function addDragEvents() {
         row.addEventListener('touchend', onDragEnd);
     });
 }
-
 window.loadData();
