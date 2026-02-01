@@ -19,10 +19,9 @@ let currentUser = '강민성';
 let currentTravel = 'first';
 let categories = [];
 let travels = ['first'];
-let selectedTravelToLoad = ''; // 불러오기에서 선택된 여행 이름
+let selectedTravelToLoad = '';
 const statusCycle = { 'X': '△', '△': 'O', 'O': 'X' };
 
-// 유저 전환
 window.switchUser = (user) => {
     currentUser = user;
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -39,53 +38,77 @@ function refreshSelectMenus() {
     if (singleCatSelect) singleCatSelect.innerHTML = optionsHTML;
 }
 
-// 여행 추가 (드롭다운 목록만 갱신)
 window.addNewTravel = () => {
     const name = prompt("새 여행 이름을 입력하세요:");
     if (name) {
         if (!travels.includes(name)) travels.push(name);
-        updateTravelSelect();
+        document.getElementById('travelSelect').innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
         currentTravel = name;
         document.getElementById('travelSelect').value = name;
         loadData();
     }
 };
 
-function updateTravelSelect() {
-    const select = document.getElementById('travelSelect');
-    select.innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
-}
-
-// 목록 저장하기 (현재 리스트를 특정 이름으로 DB에 저장)
 window.saveCurrentList = () => {
-    const title = prompt("이 체크리스트의 저장 이름을 입력하세요:");
+    const title = prompt("목록 저장 이름을 입력하세요:");
     if (!title) return;
-
-    // 현재 로드된 데이터를 가져와서 새 경로에 복사
     get(ref(database, `travels/${currentTravel}/${currentUser}`)).then((snapshot) => {
         if (snapshot.exists()) {
             set(ref(database, `travels/${title}/${currentUser}`), snapshot.val()).then(() => {
-                alert(`'${title}' 여행 목록이 저장되었습니다.`);
+                alert(`'${title}' 저장 완료!`);
                 if (!travels.includes(title)) travels.push(title);
-                updateTravelSelect();
+                document.getElementById('travelSelect').innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
             });
-        } else {
-            alert("저장할 데이터가 없습니다.");
         }
     });
 };
 
-// 통합 모달 열기
+// 새목록 기능: 현재 사용자 리스트 초기화
+window.resetCurrentList = () => {
+    if (confirm("정말 현재 체크리스트를 싹 지우시겠습니까?\n(삭제된 내용은 복구할 수 없습니다.)")) {
+        remove(ref(database, `travels/${currentTravel}/${currentUser}`)).then(() => {
+            alert("체크리스트가 초기화되었습니다.");
+        });
+    }
+};
+
+window.openCategoryModal = () => {
+    document.getElementById('currentCategoryList').innerHTML = categories.map(c => `<span class="cat-tag">${c}</span>`).join('');
+    document.getElementById('categoryModal').style.display = 'flex';
+};
+
+window.saveCategory = () => {
+    const category = document.getElementById('newCategoryName').value.trim();
+    if (!category) return;
+    if (categories.includes(category)) return alert("이미 존재합니다!");
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/_isCategory`), true).then(() => {
+        document.getElementById('newCategoryName').value = '';
+        closeModal('categoryModal');
+    });
+};
+
+window.addItem = () => {
+    refreshSelectMenus();
+    document.getElementById('itemModal').style.display = 'flex';
+};
+
+window.saveItem = () => {
+    const category = document.getElementById('categorySelect').value;
+    const itemName = document.getElementById('newItemName').value.trim();
+    if (!itemName) return;
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), {
+        prep_out: 'X', done_out: 'X', prep_in: 'X', done_in: 'X'
+    }).then(() => {
+        document.getElementById('newItemName').value = '';
+        closeModal('itemModal');
+    });
+};
+
 window.openLoadModal = () => {
-    refreshTravelListDisplay();
+    document.getElementById('travelListDisplay').innerHTML = travels.map(t => `<li id="list-${t}" onclick="setSelectToLoad('${t}')">✈️ ${t}</li>`).join('');
     refreshSelectMenus();
     document.getElementById('loadModal').style.display = 'flex';
 };
-
-function refreshTravelListDisplay() {
-    const listDisp = document.getElementById('travelListDisplay');
-    listDisp.innerHTML = travels.map(t => `<li id="list-${t}" onclick="setSelectToLoad('${t}')">✈️ ${t}</li>`).join('');
-}
 
 window.setSelectToLoad = (name) => {
     selectedTravelToLoad = name;
@@ -93,10 +116,9 @@ window.setSelectToLoad = (name) => {
     document.getElementById(`list-${name}`).classList.add('selected');
 };
 
-// 불러오기 확인 버튼
 window.confirmLoadTravel = () => {
-    if (!selectedTravelToLoad) return alert("불러올 여행을 먼저 선택하세요.");
-    if (confirm(`'${selectedTravelToLoad}' 목록을 불러오시겠습니까?\n현재 화면의 내용이 바뀝니다.`)) {
+    if (!selectedTravelToLoad) return alert("여행을 선택하세요.");
+    if (confirm(`'${selectedTravelToLoad}' 목록을 불러오시겠습니까?`)) {
         document.getElementById('travelSelect').value = selectedTravelToLoad;
         currentTravel = selectedTravelToLoad;
         loadData();
@@ -104,17 +126,13 @@ window.confirmLoadTravel = () => {
     }
 };
 
-window.closeModal = (id) => document.getElementById(id).style.display = 'none';
-
 window.uploadBulkCategories = () => {
     const text = document.getElementById('bulkCategoryText').value;
     if (!text.trim()) return;
     const cats = text.split('\n').map(c => c.trim()).filter(c => c !== "");
     const updates = {};
     cats.forEach(c => { updates[`travels/${currentTravel}/${currentUser}/${c}/_isCategory`] = true; });
-    update(ref(database), updates).then(() => {
-        document.getElementById('bulkCategoryText').value = '';
-    });
+    update(ref(database), updates).then(() => { document.getElementById('bulkCategoryText').value = ''; });
 };
 
 window.uploadBulkItems = () => {
@@ -128,27 +146,10 @@ window.uploadBulkItems = () => {
             prep_out: 'X', done_out: 'X', prep_in: 'X', done_in: 'X'
         };
     });
-    update(ref(database), updates).then(() => {
-        document.getElementById('bulkItemText').value = '';
-    });
+    update(ref(database), updates).then(() => { document.getElementById('bulkItemText').value = ''; });
 };
 
-window.addItem = () => {
-    refreshSelectMenus();
-    document.getElementById('itemModal').style.display = 'flex';
-};
-
-window.saveItem = () => {
-    const category = document.getElementById('categorySelect').value;
-    const itemName = document.getElementById('newItemName').value;
-    if (!itemName) return;
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), {
-        prep_out: 'X', done_out: 'X', prep_in: 'X', done_in: 'X'
-    }).then(() => {
-        document.getElementById('newItemName').value = '';
-        closeModal('itemModal');
-    });
-};
+window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
 window.updateStatus = (category, item, field, currentVal) => {
     set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${item}/${field}`), statusCycle[currentVal]);
@@ -166,23 +167,25 @@ window.loadData = () => {
         tbody.innerHTML = '';
         categories = [];
         if (!data) { refreshSelectMenus(); return; }
-        for (let category in data) {
-            categories.push(category);
-            tbody.innerHTML += `<tr class="category-row"><td colspan="6">${category}</td></tr>`;
-            for (let item in data[category]) {
-                if (item === '_isCategory') continue;
-                const vals = data[category][item];
+
+        const sortedCats = Object.keys(data).sort();
+        sortedCats.forEach((cat, catIdx) => {
+            categories.push(cat);
+            tbody.innerHTML += `<tr class="category-row"><td colspan="6">${catIdx + 1}. ${cat}</td></tr>`;
+            const items = Object.keys(data[cat]).filter(k => k !== '_isCategory').sort();
+            items.forEach((item, itemIdx) => {
+                const vals = data[cat][item];
                 tbody.innerHTML += `
                     <tr>
-                        <td style="text-align:left; padding-left:35px;">${item}</td>
-                        <td><button class="status-btn status-${vals.prep_out}" onclick="updateStatus('${category}', '${item}', 'prep_out', '${vals.prep_out}')">${vals.prep_out}</button></td>
-                        <td><button class="status-btn status-${vals.done_out}" onclick="updateStatus('${category}', '${item}', 'done_out', '${vals.done_out}')">${vals.done_out}</button></td>
-                        <td><button class="status-btn status-${vals.prep_in}" onclick="updateStatus('${category}', '${item}', 'prep_in', '${vals.prep_in}')">${vals.prep_in}</button></td>
-                        <td><button class="status-btn status-${vals.done_in}" onclick="updateStatus('${category}', '${item}', 'done_in', '${vals.done_in}')">${vals.done_in}</button></td>
-                        <td><button class="delete-btn" onclick="deleteItem('${category}', '${item}')">삭제</button></td>
+                        <td style="text-align:left; padding-left:35px;">${itemIdx + 1}) ${item}</td>
+                        <td><button class="status-btn status-${vals.prep_out}" onclick="updateStatus('${cat}', '${item}', 'prep_out', '${vals.prep_out}')">${vals.prep_out}</button></td>
+                        <td><button class="status-btn status-${vals.done_out}" onclick="updateStatus('${cat}', '${item}', 'done_out', '${vals.done_out}')">${vals.done_out}</button></td>
+                        <td><button class="status-btn status-${vals.prep_in}" onclick="updateStatus('${cat}', '${item}', 'prep_in', '${vals.prep_in}')">${vals.prep_in}</button></td>
+                        <td><button class="status-btn status-${vals.done_in}" onclick="updateStatus('${cat}', '${item}', 'done_in', '${vals.done_in}')">${vals.done_in}</button></td>
+                        <td><button class="delete-btn" onclick="deleteItem('${cat}', '${item}')">삭제</button></td>
                     </tr>`;
-            }
-        }
+            });
+        });
         refreshSelectMenus();
     });
 };

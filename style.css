@@ -10,7 +10,7 @@ body {
     color: #334155;
 }
 
-/* 3단 헤더 레이아웃 */
+/* 4단 헤더 레이아웃 (모바일 가독성 최적화) */
 header {
     background: #ffffff;
     padding: 25px;
@@ -23,20 +23,20 @@ header {
     text-align: center;
 }
 
-/* 줄별 스타일 및 정렬 */
+/* 각 줄별 스타일 및 정렬 */
 .header-row {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
     width: 100%;
-    gap: 15px;
+    gap: 12px;
 }
 
 /* 줄 사이 구분선 */
 .middle-row, .bottom-row {
     border-top: 1px solid #f1f5f9;
-    padding-top: 20px;
+    padding-top: 15px;
 }
 
 /* 버튼 공통 스타일 */
@@ -46,14 +46,16 @@ button {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
-    padding: 12px 22px;
-    font-size: 1rem;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    white-space: nowrap;
 }
 
 button:active {
     transform: scale(0.96);
 }
 
+/* 버튼 색상별 정의 */
 .btn-main { background-color: #e0edff; color: #007bff; }
 .btn-main:hover { background-color: #007bff; color: white; }
 
@@ -66,7 +68,15 @@ button:active {
 .btn-save { background-color: #10b981; color: white; }
 .btn-save:hover { background-color: #059669; }
 
-/* 입력 요소들 */
+/* 새목록 버튼: 옅은 빨간색 */
+.btn-reset { 
+    background-color: #fee2e2; 
+    color: #ef4444; 
+    border: 1px solid #fecaca; 
+}
+.btn-reset:hover { background-color: #fecaca; }
+
+/* 입력 요소 스타일 */
 #travelSelect, select, input, textarea {
     padding: 12px;
     border-radius: 12px;
@@ -94,7 +104,7 @@ button:active {
 }
 
 .tab-btn {
-    padding: 10px 25px;
+    padding: 10px 20px;
     background: transparent;
     color: #64748b;
     border-radius: 10px;
@@ -106,7 +116,7 @@ button:active {
     box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
 
-/* 테이블 레이아웃 */
+/* 테이블 레이아웃 및 모바일 스크롤 */
 main {
     width: 100%;
     overflow-x: auto;
@@ -138,17 +148,17 @@ td {
     text-align: center;
 }
 
-/* 카테고리 행 디자인 */
+/* 카테고리 행 디자인 (넘버링 포함) */
 .category-row td {
     background-color: #f0f7ff;
     color: #007bff;
-    font-size: 1.5rem; /* 카테고리 글씨 강조 */
+    font-size: 1.5rem;
     font-weight: 700;
     text-align: left !important;
     padding-left: 30px;
 }
 
-/* 상태 버튼 (O, 세모, X) */
+/* 상태 버튼 (X, △, O) */
 .status-btn {
     width: 56px;
     height: 56px;
@@ -169,14 +179,14 @@ td {
 .delete-btn {
     background: none;
     color: #f87171;
-    font-size: 1rem;
+    font-size: 0.9rem;
     text-decoration: underline;
     font-weight: 500;
 }
 
 .delete-btn:hover { color: #ef4444; }
 
-/* 모달 디자인 */
+/* 모달 및 통합 관리 팝업 */
 .modal {
     display: none;
     position: fixed;
@@ -200,11 +210,39 @@ td {
 
 .modal-large { max-width: 1100px; }
 
-/* 팝업 내부 그리드 */
+/* 카테고리 추가 시 미리보기 태그 */
+.current-cats-box {
+    margin-bottom: 20px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 15px;
+    text-align: left;
+}
+
+.current-cats-box label { font-weight: bold; font-size: 0.9rem; color: #64748b; }
+
+.cat-preview-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.cat-tag {
+    background: #e0edff;
+    color: #007bff;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    border: 1px solid #cce0ff;
+}
+
+/* 불러오기 팝업 3열 그리드 */
 .load-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 25px;
+    gap: 20px;
     margin-top: 25px;
 }
 
@@ -214,7 +252,7 @@ td {
 
 .grid-col {
     background: #f8fbff;
-    padding: 20px;
+    padding: 18px;
     border-radius: 18px;
     border: 1px solid #eef2f7;
     text-align: left;
@@ -224,13 +262,10 @@ td {
     margin-top: 0;
     color: #007bff;
     border-bottom: 2px solid #e0edff;
-    padding-bottom: 12px;
-    font-size: 1.1rem;
+    padding-bottom: 10px;
 }
 
-.guide { font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px; }
-
-/* 목록 스타일 */
+/* 리스트 스타일 */
 .data-list {
     list-style: none;
     padding: 0; margin: 0;
@@ -246,10 +281,8 @@ td {
     background: white;
     margin-bottom: 8px;
     border-radius: 10px;
-    transition: 0.2s;
 }
 
-.data-list li:hover { background: #e0edff; }
 .data-list li.selected {
     background: #007bff;
     color: white;

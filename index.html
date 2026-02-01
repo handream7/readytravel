@@ -13,7 +13,7 @@
                 <select id="travelSelect" onchange="loadData()">
                     <option value="first">첫 여행</option>
                 </select>
-                <button class="btn-sub" onclick="addNewTravel()">여행 추가 +</button>
+                <button class="btn-sub" onclick="addNewTravel()">여행+</button>
             </div>
         </div>
 
@@ -26,10 +26,16 @@
 
         <div class="header-row bottom-row">
             <div class="action-group">
-                <button class="btn-load" onclick="openLoadModal()">불러오기 / 대량 업로드 ↻</button>
-                <button class="btn-save" onclick="saveCurrentList()">목록 저장하기 💾</button>
-                <button class="btn-main" onclick="addCategory()">카테고리 추가 +</button>
-                <button class="btn-main" onclick="addItem()">아이템 추가 +</button>
+                <button class="btn-load" onclick="openLoadModal()">불러오기 / 대량 ↻</button>
+                <button class="btn-save" onclick="saveCurrentList()">목록저장 💾</button>
+                <button class="btn-reset" onclick="resetCurrentList()">새목록 🗑️</button>
+            </div>
+        </div>
+
+        <div class="header-row bottom-row">
+            <div class="action-group">
+                <button class="btn-main" onclick="openCategoryModal()">카테고리+</button>
+                <button class="btn-main" onclick="addItem()">아이템+</button>
             </div>
         </div>
     </header>
@@ -50,9 +56,25 @@
         </table>
     </main>
 
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <h3>카테고리</h3>
+            <div class="current-cats-box">
+                <label>현재 목록:</label>
+                <div id="currentCategoryList" class="cat-preview-tags"></div>
+            </div>
+            <label>새 카테고리 이름</label>
+            <input type="text" id="newCategoryName" placeholder="예: 전자기기">
+            <div class="modal-buttons">
+                <button class="btn-load" onclick="saveCategory()">추가</button>
+                <button class="btn-sub" onclick="closeModal('categoryModal')">취소</button>
+            </div>
+        </div>
+    </div>
+
     <div id="itemModal" class="modal">
         <div class="modal-content">
-            <h3>단일 아이템 추가</h3>
+            <h3>아이템</h3>
             <label>카테고리 선택</label>
             <select id="categorySelect"></select>
             <label>아이템 이름</label>
@@ -71,18 +93,18 @@
                 <div class="grid-col">
                     <h4>📁 기존 여행 목록</h4>
                     <ul id="travelListDisplay" class="data-list"></ul>
-                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="confirmLoadTravel()">선택 목록 불러오기 (확인)</button>
+                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="confirmLoadTravel()">선택 불러오기</button>
                 </div>
                 <div class="grid-col">
-                    <h4>📂 카테고리 대량 추가</h4>
-                    <textarea id="bulkCategoryText" rows="8" placeholder="의류&#10;세면도구"></textarea>
-                    <button class="btn-main" style="width:100%; margin-top:10px;" onclick="uploadBulkCategories()">카테고리 생성</button>
+                    <h4>📂 카테고리 대량</h4>
+                    <textarea id="bulkCategoryText" rows="10" placeholder="의류&#10;세면도구"></textarea>
+                    <button class="btn-main" style="width:100%; margin-top:10px;" onclick="uploadBulkCategories()">생성</button>
                 </div>
                 <div class="grid-col">
-                    <h4>📦 아이템 대량 추가</h4>
+                    <h4>📦 아이템 대량</h4>
                     <select id="bulkItemCategorySelect" style="margin-bottom: 5px;"></select>
-                    <textarea id="bulkItemText" rows="8" placeholder="여권&#10;보조배터리"></textarea>
-                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="uploadBulkItems()">아이템 생성</button>
+                    <textarea id="bulkItemText" rows="10" placeholder="여권&#10;보조배터리"></textarea>
+                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="uploadBulkItems()">생성</button>
                 </div>
             </div>
             <div class="modal-buttons">
