@@ -34,11 +34,10 @@ header {
     align-items: center;
 }
 
-/* 드롭다운 글자 길이에 맞게 설정 */
 #travelSelect {
     width: auto;
     min-width: 80px;
-    max-width: 180px;
+    max-width: 200px;
     flex: 0 1 auto;
 }
 
@@ -131,20 +130,19 @@ th {
     background: #f8fbff;
     color: #475569;
     font-size: 0.85rem;
-    padding: 10px 2px;
+    padding: 12px 2px;
     border-bottom: 2px solid #eef2f7;
 }
 
 td {
-    padding: 8px 5px;
+    padding: 10px 5px;
     border-bottom: 1px solid #f1f5f9;
     vertical-align: middle;
 }
 
-/* 드래그 앤 드롭 시각 효과 */
 tr.dragging {
     opacity: 0.5;
-    background-color: #e0edff;
+    background-color: #e0edff !important;
 }
 
 .status-col { width: 60px; text-align: center; }
@@ -157,12 +155,17 @@ tr.dragging {
 }
 
 .name-text {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 600;
     word-break: break-all;
 }
 
-/* 드래그 핸들 느낌 추가 */
+.row-num {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    min-width: 20px;
+}
+
 .category-row .name-text::before {
     content: '≡';
     margin-right: 8px;
@@ -174,8 +177,8 @@ tr.dragging {
     background: #fee2e2;
     color: #ef4444;
     border: none;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 4px;
     font-size: 10px;
     cursor: pointer;
@@ -186,11 +189,12 @@ tr.dragging {
 }
 
 .category-row td { background-color: #f0f7ff; color: #007bff; }
+.category-row .row-num { color: #007bff; font-weight: bold; }
 
 .status-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 14px;
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
     border-radius: 8px;
     border: 2px solid #e2e8f0;
     background: white;
@@ -207,6 +211,7 @@ tr.dragging {
     z-index: 1000;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(2px);
 }
 
 .modal-content {

@@ -92,7 +92,7 @@ window.openCategoryModal = () => {
 window.saveCategory = () => {
     const category = document.getElementById('newCategoryName').value.trim();
     if (!category || categories.includes(category)) return alert("이름을 확인하세요.");
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/_isCategory`), true).then(() => {
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/_isCategory`), { index: categories.length }).then(() => {
         document.getElementById('newCategoryName').value = '';
         closeModal('categoryModal');
     });
@@ -107,9 +107,12 @@ window.saveItem = () => {
     const category = document.getElementById('categorySelect').value;
     const itemName = document.getElementById('newItemName').value.trim();
     if (!itemName) return;
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), { out: 'X', in: 'X' }).then(() => {
-        document.getElementById('newItemName').value = '';
-        closeModal('itemModal');
+    get(ref(database, `travels/${currentTravel}/${currentUser}/${category}`)).then(snap => {
+        const itemIndex = snap.exists() ? Object.keys(snap.val()).filter(k => k !== '_isCategory').length : 0;
+        set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), { out: 'X', in: 'X', index: itemIndex }).then(() => {
+            document.getElementById('newItemName').value = '';
+            closeModal('itemModal');
+        });
     });
 };
 
@@ -146,7 +149,7 @@ window.uploadBulkCategories = () => {
     if (!text.trim()) return;
     const cats = text.split('\n').map(c => c.trim()).filter(c => c !== "");
     const updates = {};
-    cats.forEach(c => { updates[`travels/${currentTravel}/${currentUser}/${c}/_isCategory`] = true; });
+    cats.forEach((c, idx) => { updates[`travels/${currentTravel}/${currentUser}/${c}/_isCategory`] = { index: categories.length + idx }; });
     update(ref(database), updates).then(() => {
         document.getElementById('bulkCategoryText').value = '';
         alert(`${cats.length}개 생성 완료!`);
@@ -159,7 +162,7 @@ window.uploadBulkItems = () => {
     if (!text.trim()) return;
     const items = text.split('\n').map(i => i.trim()).filter(i => i !== "");
     const updates = {};
-    items.forEach(item => { updates[`travels/${currentTravel}/${currentUser}/${category}/${item}`] = { out: 'X', in: 'X' }; });
+    items.forEach((item, idx) => { updates[`travels/${currentTravel}/${currentUser}/${category}/${item}`] = { out: 'X', in: 'X', index: idx }; });
     update(ref(database), updates).then(() => {
         document.getElementById('bulkItemText').value = '';
         alert(`${items.length}개 생성 완료!`);
@@ -181,6 +184,44 @@ window.confirmDelete = (category, item = null) => {
     }
 };
 
+// 실시간 DB 순서 업데이트 함수 추가
+async function syncOrderToDB() {
+    const updates = {};
+    let catIdx = 0;
+    const rows = document.querySelectorAll('#checklistBody tr');
+    let itemIdx = 0;
+    let currentCat = '';
+
+    rows.forEach(row => {
+        if (row.dataset.type === 'category') {
+            currentCat = row.dataset.id;
+            updates[`travels/${currentTravel}/${currentUser}/${currentCat}/_isCategory/index`] = catIdx++;
+            itemIdx = 0;
+        } else {
+            const item = row.dataset.id;
+            updates[`travels/${currentTravel}/${currentUser}/${currentCat}/${item}/index`] = itemIdx++;
+        }
+    });
+    await update(ref(database), updates);
+}
+
+function renumberRows() {
+    let catIdx = 0;
+    const rows = document.querySelectorAll('#checklistBody tr');
+    let itemIdx = 0;
+    rows.forEach(row => {
+        const numSpan = row.querySelector('.row-num');
+        if (row.dataset.type === 'category') {
+            catIdx++;
+            itemIdx = 0;
+            if (numSpan) numSpan.innerText = `${catIdx}.`;
+        } else {
+            itemIdx++;
+            if (numSpan) numSpan.innerText = `${itemIdx})`;
+        }
+    });
+}
+
 window.loadData = () => {
     const select = document.getElementById('travelSelect');
     if (select && select.value) currentTravel = select.value;
@@ -191,37 +232,46 @@ window.loadData = () => {
         tbody.innerHTML = '';
         categories = [];
         if (!data) { refreshSelectMenus(); return; }
-        Object.keys(data).sort().forEach((cat, cIdx) => {
-            if (cat === '_isCategory') return;
+        
+        // index 기반 정렬 처리
+        const sortedCats = Object.keys(data)
+            .filter(cat => cat !== '_isCategory' && data[cat]._isCategory)
+            .sort((a, b) => (data[a]._isCategory.index || 0) - (data[b]._isCategory.index || 0));
+
+        sortedCats.forEach((cat) => {
             categories.push(cat);
             tbody.innerHTML += `<tr class="category-row" draggable="true" data-type="category" data-id="${cat}">
-                <td colspan="3"><div class="name-cell"><span class="name-text">${cIdx + 1}. ${cat}</span>
+                <td colspan="3"><div class="name-cell"><span class="row-num"></span><span class="name-text">${cat}</span>
                 <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button></div></td></tr>`;
-            Object.keys(data[cat]).filter(k => k !== '_isCategory').sort().forEach((item, iIdx) => {
+            
+            const sortedItems = Object.keys(data[cat])
+                .filter(k => k !== '_isCategory')
+                .sort((a, b) => (data[cat][a].index || 0) - (data[cat][b].index || 0));
+
+            sortedItems.forEach((item) => {
                 const vals = data[cat][item];
                 tbody.innerHTML += `<tr draggable="true" data-type="item" data-category="${cat}" data-id="${item}">
-                    <td><div class="name-cell"><span class="name-text">${iIdx + 1}) ${item}</span>
+                    <td><div class="name-cell"><span class="row-num"></span><span class="name-text">${item}</span>
                     <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button></div></td>
                     <td class="status-col"><button class="status-btn status-${vals.out || 'X'}" onclick="updateStatus('${cat}', '${item}', 'out', '${vals.out || 'X'}')">${vals.out || 'X'}</button></td>
                     <td class="status-col"><button class="status-btn status-${vals.in || 'X'}" onclick="updateStatus('${cat}', '${item}', 'in', '${vals.in || 'X'}')">${vals.in || 'X'}</button></td></tr>`;
             });
         });
         refreshSelectMenus();
+        renumberRows();
         addDragEvents();
     });
 };
 
 function addDragEvents() {
-    const tbody = document.getElementById('checklistBody');
     const rows = document.querySelectorAll('#checklistBody tr');
-    let draggedRows = []; // 카테고리 뭉치를 담을 배열
+    let draggedRows = [];
 
     rows.forEach(row => {
         row.addEventListener('dragstart', (e) => {
             row.classList.add('dragging');
             if (row.dataset.type === 'category') {
                 const catId = row.dataset.id;
-                // 해당 카테고리와 그 아래 아이템들을 모두 선택
                 draggedRows = [row, ...document.querySelectorAll(`tr[data-type="item"][data-category="${catId}"]`)];
                 draggedRows.forEach(r => r.classList.add('dragging'));
             } else {
@@ -229,9 +279,11 @@ function addDragEvents() {
             }
         });
 
-        row.addEventListener('dragend', () => {
+        row.addEventListener('dragend', async () => {
             draggedRows.forEach(r => r.classList.remove('dragging'));
             draggedRows = [];
+            renumberRows();
+            await syncOrderToDB(); // 순서 변경 완료 후 DB 동기화
         });
 
         row.addEventListener('dragover', (e) => {
@@ -239,25 +291,15 @@ function addDragEvents() {
             const target = e.target.closest('tr');
             if (!target || draggedRows.includes(target)) return;
 
-            // 같은 타입끼리만 이동 가능하게 하거나, 카테고리 이동 시 뭉치 전체 이동
             if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
                 const bounding = target.getBoundingClientRect();
                 const offset = e.clientY - bounding.top;
-                
-                // 타겟 카테고리의 아이템들 중 마지막 행 찾기
                 const targetCatId = target.dataset.id;
                 const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${targetCatId}"]`);
                 const lastItemOfTarget = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
-
-                if (offset > bounding.height / 2) {
-                    // 타겟 카테고리 뭉치 뒤로 이동
-                    lastItemOfTarget.after(...draggedRows);
-                } else {
-                    // 타겟 카테고리 뭉치 앞으로 이동
-                    target.before(...draggedRows);
-                }
+                if (offset > bounding.height / 2) lastItemOfTarget.after(...draggedRows);
+                else target.before(...draggedRows);
             } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
-                // 같은 카테고리 내 아이템 순서 변경
                 const bounding = target.getBoundingClientRect();
                 const offset = e.clientY - bounding.top;
                 if (offset > bounding.height / 2) target.after(draggedRows[0]);
