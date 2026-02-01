@@ -45,20 +45,18 @@
             <thead>
                 <tr>
                     <th>카테고리 / 아이템</th>
-                    <th>출발준비</th>
-                    <th>출발완료</th>
-                    <th>귀국준비</th>
-                    <th>귀국완료</th>
-                    <th>삭제</th>
+                    <th class="status-col">출발</th>
+                    <th class="status-col">귀국</th>
                 </tr>
             </thead>
-            <tbody id="checklistBody"></tbody>
+            <tbody id="checklistBody">
+                </tbody>
         </table>
     </main>
 
     <div id="categoryModal" class="modal">
         <div class="modal-content">
-            <h3>카테고리</h3>
+            <h3>카테고리 추가</h3>
             <div class="current-cats-box">
                 <label>현재 목록:</label>
                 <div id="currentCategoryList" class="cat-preview-tags"></div>
@@ -74,7 +72,7 @@
 
     <div id="itemModal" class="modal">
         <div class="modal-content">
-            <h3>아이템</h3>
+            <h3>아이템 추가</h3>
             <label>카테고리 선택</label>
             <select id="categorySelect"></select>
             <label>아이템 이름</label>

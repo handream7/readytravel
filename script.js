@@ -20,8 +20,10 @@ let currentTravel = 'first';
 let categories = [];
 let travels = ['first'];
 let selectedTravelToLoad = '';
-const statusCycle = { 'X': '△', '△': 'O', 'O': 'X' };
 
+const statusToggle = { 'X': 'O', 'O': 'X' };
+
+// 여행 목록 불러오기
 onValue(ref(database, 'travelNames'), (snapshot) => {
     const data = snapshot.val();
     if (data) {
@@ -65,18 +67,14 @@ window.saveCurrentList = () => {
     get(ref(database, `travels/${currentTravel}/${currentUser}`)).then((snapshot) => {
         if (snapshot.exists()) {
             set(ref(database, `travels/${title}/${currentUser}`), snapshot.val());
-            set(ref(database, `travelNames/${title}`), true).then(() => {
-                alert(`'${title}' 저장 완료!`);
-            });
+            set(ref(database, `travelNames/${title}`), true).then(() => alert(`'${title}' 저장 완료!`));
         }
     });
 };
 
 window.resetCurrentList = () => {
     if (confirm("정말 현재 체크리스트를 싹 지우시겠습니까?")) {
-        remove(ref(database, `travels/${currentTravel}/${currentUser}`)).then(() => {
-            alert("초기화되었습니다.");
-        });
+        remove(ref(database, `travels/${currentTravel}/${currentUser}`)).then(() => alert("초기화되었습니다."));
     }
 };
 
@@ -87,8 +85,7 @@ window.openCategoryModal = () => {
 
 window.saveCategory = () => {
     const category = document.getElementById('newCategoryName').value.trim();
-    if (!category) return;
-    if (categories.includes(category)) return alert("이미 존재합니다!");
+    if (!category || categories.includes(category)) return alert("이름을 확인하세요.");
     set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/_isCategory`), true).then(() => {
         document.getElementById('newCategoryName').value = '';
         closeModal('categoryModal');
@@ -104,9 +101,7 @@ window.saveItem = () => {
     const category = document.getElementById('categorySelect').value;
     const itemName = document.getElementById('newItemName').value.trim();
     if (!itemName) return;
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), {
-        prep_out: 'X', done_out: 'X', prep_in: 'X', done_in: 'X'
-    }).then(() => {
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), { out: 'X', in: 'X' }).then(() => {
         document.getElementById('newItemName').value = '';
         closeModal('itemModal');
     });
@@ -121,8 +116,7 @@ window.openLoadModal = () => {
 window.setSelectToLoad = (name) => {
     selectedTravelToLoad = name;
     document.querySelectorAll('.data-list li').forEach(li => li.classList.remove('selected'));
-    const target = document.getElementById(`list-${name}`);
-    if (target) target.classList.add('selected');
+    if (document.getElementById(`list-${name}`)) document.getElementById(`list-${name}`).classList.add('selected');
 };
 
 window.confirmLoadTravel = () => {
@@ -141,9 +135,9 @@ window.uploadBulkCategories = () => {
     const cats = text.split('\n').map(c => c.trim()).filter(c => c !== "");
     const updates = {};
     cats.forEach(c => { updates[`travels/${currentTravel}/${currentUser}/${c}/_isCategory`] = true; });
-    update(ref(database), updates).then(() => { 
-        document.getElementById('bulkCategoryText').value = ''; 
-        alert(`총 ${cats.length}개의 카테고리가 생성되었습니다.`);
+    update(ref(database), updates).then(() => {
+        document.getElementById('bulkCategoryText').value = '';
+        alert(`${cats.length}개 생성 완료!`);
     });
 };
 
@@ -153,25 +147,25 @@ window.uploadBulkItems = () => {
     if (!text.trim()) return;
     const items = text.split('\n').map(i => i.trim()).filter(i => i !== "");
     const updates = {};
-    items.forEach(item => {
-        updates[`travels/${currentTravel}/${currentUser}/${category}/${item}`] = {
-            prep_out: 'X', done_out: 'X', prep_in: 'X', done_in: 'X'
-        };
-    });
-    update(ref(database), updates).then(() => { 
-        document.getElementById('bulkItemText').value = ''; 
-        alert(`총 ${items.length}개의 아이템이 생성되었습니다.`);
+    items.forEach(item => { updates[`travels/${currentTravel}/${currentUser}/${category}/${item}`] = { out: 'X', in: 'X' }; });
+    update(ref(database), updates).then(() => {
+        document.getElementById('bulkItemText').value = '';
+        alert(`${items.length}개 생성 완료!`);
     });
 };
 
 window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
 window.updateStatus = (category, item, field, currentVal) => {
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${item}/${field}`), statusCycle[currentVal]);
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${item}/${field}`), statusToggle[currentVal]);
 };
 
-window.deleteItem = (category, item) => {
-    if(confirm('삭제하시겠습니까?')) remove(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${item}`));
+window.confirmDelete = (category, item = null) => {
+    const msg = item ? `'${item}' 아이템을 삭제하시겠습니까?` : `'${category}' 카테고리를 삭제하시겠습니까?`;
+    if (confirm(msg)) {
+        const path = item ? `travels/${currentTravel}/${currentUser}/${category}/${item}` : `travels/${currentTravel}/${currentUser}/${category}`;
+        remove(ref(database, path));
+    }
 };
 
 window.loadData = () => {
@@ -183,21 +177,30 @@ window.loadData = () => {
         categories = [];
         if (!data) { refreshSelectMenus(); return; }
 
-        const sortedCats = Object.keys(data).sort();
-        sortedCats.forEach((cat, catIdx) => {
+        Object.keys(data).sort().forEach((cat, cIdx) => {
             categories.push(cat);
-            tbody.innerHTML += `<tr class="category-row"><td colspan="6">${catIdx + 1}. ${cat}</td></tr>`;
-            const items = Object.keys(data[cat]).filter(k => k !== '_isCategory').sort();
-            items.forEach((item, itemIdx) => {
+            tbody.innerHTML += `
+                <tr class="category-row">
+                    <td colspan="3">
+                        <div class="name-cell">
+                            <span>${cIdx + 1}. ${cat}</span>
+                            <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button>
+                        </div>
+                    </td>
+                </tr>`;
+            
+            Object.keys(data[cat]).filter(k => k !== '_isCategory').sort().forEach((item, iIdx) => {
                 const vals = data[cat][item];
                 tbody.innerHTML += `
                     <tr>
-                        <td style="text-align:left; padding-left:35px;">${itemIdx + 1}) ${item}</td>
-                        <td><button class="status-btn status-${vals.prep_out}" onclick="updateStatus('${cat}', '${item}', 'prep_out', '${vals.prep_out}')">${vals.prep_out}</button></td>
-                        <td><button class="status-btn status-${vals.done_out}" onclick="updateStatus('${cat}', '${item}', 'done_out', '${vals.done_out}')">${vals.done_out}</button></td>
-                        <td><button class="status-btn status-${vals.prep_in}" onclick="updateStatus('${cat}', '${item}', 'prep_in', '${vals.prep_in}')">${vals.prep_in}</button></td>
-                        <td><button class="status-btn status-${vals.done_in}" onclick="updateStatus('${cat}', '${item}', 'done_in', '${vals.done_in}')">${vals.done_in}</button></td>
-                        <td><button class="delete-btn" onclick="deleteItem('${cat}', '${item}')">삭제</button></td>
+                        <td style="padding-left:35px;">
+                            <div class="name-cell">
+                                <span>${iIdx + 1}) ${item}</span>
+                                <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button>
+                            </div>
+                        </td>
+                        <td class="status-col"><button class="status-btn status-${vals.out}" onclick="updateStatus('${cat}', '${item}', 'out', '${vals.out}')">${vals.out}</button></td>
+                        <td class="status-col"><button class="status-btn status-${vals.in}" onclick="updateStatus('${cat}', '${item}', 'in', '${vals.in}')">${vals.in}</button></td>
                     </tr>`;
             });
         });
