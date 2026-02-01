@@ -18,26 +18,24 @@ const database = getDatabase(app);
 let currentUser = '강민성';
 let currentTravel = '첫여행';
 let categories = [];
-let travels = ['첫여행'];
-let selectedTravelToLoad = '';
+let travels = [];
+let selectedVersionToLoad = '';
 let currentUnsubscribe = null;
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
+// 여행 목록 드롭다운 동기화
 onValue(ref(database, 'travelNames'), (snapshot) => {
     const data = snapshot.val();
     const select = document.getElementById('travelSelect');
     if (data) travels = Object.keys(data);
-    else travels = ['첫여행'];
+    else { travels = ['첫여행']; set(ref(database, 'travelNames/첫여행'), true); }
+
     const currentVal = select.value || currentTravel;
     select.innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
-    if (travels.includes(currentVal)) {
-        select.value = currentVal;
-        currentTravel = currentVal;
-    } else {
-        select.value = travels[0];
-        currentTravel = travels[0];
-    }
+    if (travels.includes(currentVal)) select.value = currentVal;
+    else select.value = travels[0];
+    currentTravel = select.value;
 });
 
 window.switchUser = (user) => {
@@ -48,54 +46,42 @@ window.switchUser = (user) => {
     loadData();
 };
 
-function refreshSelectMenus() {
-    const bulkItemCatSelect = document.getElementById('bulkItemCategorySelect');
-    const singleCatSelect = document.getElementById('categorySelect');
-    const optionsHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('') + `<option value="미분류">없음</option>`;
-    if (bulkItemCatSelect) bulkItemCatSelect.innerHTML = optionsHTML;
-    if (singleCatSelect) singleCatSelect.innerHTML = optionsHTML;
-}
-
 window.addNewTravel = () => {
-    const name = prompt("새 여행 이름을 입력하세요:");
-    if (name) {
-        set(ref(database, `travelNames/${name}`), true).then(() => {
-            document.getElementById('travelSelect').value = name;
-            currentTravel = name;
-            loadData();
-        });
-    }
+    const name = prompt("새로운 여행 틀 이름을 입력하세요 (예: 태국여행):");
+    if (name) set(ref(database, `travelNames/${name}`), true);
 };
 
 window.saveCurrentList = () => {
-    const title = prompt("목록 저장 이름을 입력하세요 (백업용):");
-    if (!title) return;
-    get(ref(database, `travels/${currentTravel}/${currentUser}`)).then((snapshot) => {
-        if (snapshot.exists()) {
-            set(ref(database, `travels/${title}/${currentUser}`), snapshot.val());
-            set(ref(database, `travelNames/${title}`), true).then(() => alert(`'${title}' 저장 완료!`));
-        }
+    const versionName = prompt("저장할 버전 이름을 입력하세요 (예: 버전1):");
+    if (!versionName) return;
+    get(ref(database, `travels/${currentTravel}/${currentUser}/current`)).then((snap) => {
+        if (snap.exists()) {
+            set(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${versionName}`), snap.val())
+                .then(() => alert(`'${currentTravel}' 여행 내에 '${versionName}' 저장 완료!`));
+        } else alert("저장할 내용이 없습니다.");
     });
 };
 
 window.resetCurrentList = () => {
-    if (confirm("정말 현재 체크리스트를 싹 지우시겠습니까?")) {
-        remove(ref(database, `travels/${currentTravel}/${currentUser}`)).then(() => alert("초기화되었습니다."));
+    if (confirm("현재 실시간 체크리스트를 모두 비우시겠습니까?")) {
+        remove(ref(database, `travels/${currentTravel}/${currentUser}/current`));
     }
 };
 
 window.openCategoryModal = () => {
-    document.getElementById('currentCategoryList').innerHTML = categories.map(c => `<span class="cat-tag">${c}</span>`).join('');
+    const list = document.getElementById('currentCategoryList');
+    list.innerHTML = categories.map(c => `<span class="cat-tag">${c}</span>`).join('');
     document.getElementById('categoryModal').style.display = 'flex';
 };
 
 window.saveCategory = () => {
-    const category = document.getElementById('newCategoryName').value.trim();
-    if (!category || categories.includes(category)) return alert("이름을 확인하세요.");
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/_isCategory`), { index: categories.length }).then(() => {
-        document.getElementById('newCategoryName').value = '';
-        closeModal('categoryModal');
-    });
+    const name = document.getElementById('newCategoryName').value.trim();
+    if (!name) return;
+    set(ref(database, `travels/${currentTravel}/${currentUser}/current/${name}/_isCategory`), { index: categories.length })
+        .then(() => {
+            document.getElementById('newCategoryName').value = '';
+            closeModal('categoryModal');
+        });
 };
 
 window.addItem = () => {
@@ -104,44 +90,41 @@ window.addItem = () => {
 };
 
 window.saveItem = () => {
-    const category = document.getElementById('categorySelect').value;
-    const itemName = document.getElementById('newItemName').value.trim();
-    if (!itemName) return;
-    get(ref(database, `travels/${currentTravel}/${currentUser}/${category}`)).then(snap => {
-        const itemIndex = snap.exists() ? Object.keys(snap.val()).filter(k => k !== '_isCategory').length : 0;
-        set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), { out: 'X', in: 'X', index: itemIndex }).then(() => {
-            document.getElementById('newItemName').value = '';
-            closeModal('itemModal');
-        });
+    const cat = document.getElementById('categorySelect').value;
+    const name = document.getElementById('newItemName').value.trim();
+    if (!name) return;
+    get(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}`)).then(snap => {
+        const idx = snap.exists() ? Object.keys(snap.val()).length : 0;
+        set(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}/${name}`), { out: 'X', in: 'X', index: idx })
+            .then(() => {
+                document.getElementById('newItemName').value = '';
+                closeModal('itemModal');
+            });
     });
 };
 
 window.openLoadModal = () => {
-    document.getElementById('travelListDisplay').innerHTML = travels.map(t => `<li id="list-${t}" onclick="setSelectToLoad('${t}')">✈️ ${t}</li>`).join('');
+    onValue(ref(database, `travels/${currentTravel}/${currentUser}/savedLists`), (snap) => {
+        const display = document.getElementById('savedVersionsDisplay');
+        if (snap.exists()) {
+            display.innerHTML = Object.keys(snap.val()).map(v => `<li onclick="setVersionToLoad('${v}')">📄 ${v}</li>`).join('');
+        } else display.innerHTML = '<li>저장된 버전 없음</li>';
+    });
     refreshSelectMenus();
     document.getElementById('loadModal').style.display = 'flex';
 };
 
-window.setSelectToLoad = (name) => {
-    selectedTravelToLoad = name;
-    document.querySelectorAll('.data-list li').forEach(li => li.classList.remove('selected'));
-    if (document.getElementById(`list-${name}`)) document.getElementById(`list-${name}`).classList.add('selected');
+window.setVersionToLoad = (name) => {
+    selectedVersionToLoad = name;
+    document.querySelectorAll('#savedVersionsDisplay li').forEach(li => li.classList.toggle('selected', li.innerText.includes(name)));
 };
 
-window.confirmLoadTravel = () => {
-    if (!selectedTravelToLoad) return alert("여행을 선택하세요.");
-    if (confirm(`'${selectedTravelToLoad}'의 목록을 현재 작업 중인 '${currentTravel}' 여행으로 불러오시겠습니까?`)) {
-        get(ref(database, `travels/${selectedTravelToLoad}/${currentUser}`)).then((snapshot) => {
-            if (snapshot.exists()) {
-                set(ref(database, `travels/${currentTravel}/${currentUser}`), snapshot.val()).then(() => {
-                    alert("성공적으로 데이터를 불러왔습니다.");
-                    closeModal('loadModal');
-                });
-            } else {
-                alert("불러올 데이터가 없습니다.");
-            }
-        });
-    }
+window.confirmLoadVersion = () => {
+    if (!selectedVersionToLoad) return alert("불러올 버전을 선택하세요.");
+    get(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${selectedVersionToLoad}`)).then(snap => {
+        set(ref(database, `travels/${currentTravel}/${currentUser}/current`), snap.val());
+        closeModal('loadModal');
+    });
 };
 
 window.uploadBulkCategories = () => {
@@ -149,163 +132,123 @@ window.uploadBulkCategories = () => {
     if (!text.trim()) return;
     const cats = text.split('\n').map(c => c.trim()).filter(c => c !== "");
     const updates = {};
-    cats.forEach((c, idx) => { updates[`travels/${currentTravel}/${currentUser}/${c}/_isCategory`] = { index: categories.length + idx }; });
+    cats.forEach((c, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${c}/_isCategory`] = { index: categories.length + idx }; });
     update(ref(database), updates).then(() => {
         document.getElementById('bulkCategoryText').value = '';
-        alert(`${cats.length}개 생성 완료!`);
+        alert("일괄 생성 완료!");
     });
 };
 
 window.uploadBulkItems = () => {
-    const category = document.getElementById('bulkItemCategorySelect').value;
+    const cat = document.getElementById('bulkItemCategorySelect').value;
     const text = document.getElementById('bulkItemText').value;
     if (!text.trim()) return;
     const items = text.split('\n').map(i => i.trim()).filter(i => i !== "");
     const updates = {};
-    items.forEach((item, idx) => { updates[`travels/${currentTravel}/${currentUser}/${category}/${item}`] = { out: 'X', in: 'X', index: idx }; });
+    items.forEach((item, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${item}`] = { out: 'X', in: 'X', index: idx }; });
     update(ref(database), updates).then(() => {
         document.getElementById('bulkItemText').value = '';
-        alert(`${items.length}개 생성 완료!`);
+        alert("일괄 생성 완료!");
     });
 };
 
-window.closeModal = (id) => document.getElementById(id).style.display = 'none';
-
-window.updateStatus = (category, item, field, currentVal) => {
-    if(!statusToggle[currentVal]) return; 
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${item}/${field}`), statusToggle[currentVal]);
+window.updateStatus = (cat, item, field, val) => {
+    set(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}/${item}/${field}`), statusToggle[val]);
 };
 
-window.confirmDelete = (category, item = null) => {
-    const msg = item ? `'${item}' 삭제할까요?` : `'${category}' 삭제할까요?`;
-    if (confirm(msg)) {
-        const path = item ? `travels/${currentTravel}/${currentUser}/${category}/${item}` : `travels/${currentTravel}/${currentUser}/${category}`;
-        remove(ref(database, path));
-    }
+window.confirmDelete = (cat, item = null) => {
+    if (!confirm("삭제하시겠습니까?")) return;
+    const path = item ? `current/${cat}/${item}` : `current/${cat}`;
+    remove(ref(database, `travels/${currentTravel}/${currentUser}/${path}`));
 };
 
-// 실시간 DB 순서 업데이트 함수 추가
-async function syncOrderToDB() {
-    const updates = {};
-    let catIdx = 0;
-    const rows = document.querySelectorAll('#checklistBody tr');
-    let itemIdx = 0;
-    let currentCat = '';
+window.closeModal = (id) => { document.getElementById(id).style.display = 'none'; };
 
-    rows.forEach(row => {
-        if (row.dataset.type === 'category') {
-            currentCat = row.dataset.id;
-            updates[`travels/${currentTravel}/${currentUser}/${currentCat}/_isCategory/index`] = catIdx++;
-            itemIdx = 0;
-        } else {
-            const item = row.dataset.id;
-            updates[`travels/${currentTravel}/${currentUser}/${currentCat}/${item}/index`] = itemIdx++;
-        }
-    });
-    await update(ref(database), updates);
-}
-
-function renumberRows() {
-    let catIdx = 0;
-    const rows = document.querySelectorAll('#checklistBody tr');
-    let itemIdx = 0;
-    rows.forEach(row => {
-        const numSpan = row.querySelector('.row-num');
-        if (row.dataset.type === 'category') {
-            catIdx++;
-            itemIdx = 0;
-            if (numSpan) numSpan.innerText = `${catIdx}.`;
-        } else {
-            itemIdx++;
-            if (numSpan) numSpan.innerText = `${itemIdx})`;
-        }
-    });
+function refreshSelectMenus() {
+    const options = categories.map(c => `<option value="${c}">${c}</option>`).join('') + `<option value="미분류">없음</option>`;
+    document.getElementById('categorySelect').innerHTML = options;
+    document.getElementById('bulkItemCategorySelect').innerHTML = options;
 }
 
 window.loadData = () => {
-    const select = document.getElementById('travelSelect');
-    if (select && select.value) currentTravel = select.value;
+    currentTravel = document.getElementById('travelSelect').value;
     if (currentUnsubscribe) currentUnsubscribe();
-    currentUnsubscribe = onValue(ref(database, `travels/${currentTravel}/${currentUser}`), (snapshot) => {
+    currentUnsubscribe = onValue(ref(database, `travels/${currentTravel}/${currentUser}/current`), (snapshot) => {
         const data = snapshot.val();
         const tbody = document.getElementById('checklistBody');
-        tbody.innerHTML = '';
-        categories = [];
+        tbody.innerHTML = ''; categories = [];
         if (!data) { refreshSelectMenus(); return; }
-        
-        // index 기반 정렬 처리
+
         const sortedCats = Object.keys(data)
-            .filter(cat => cat !== '_isCategory' && data[cat]._isCategory)
+            .filter(cat => data[cat]._isCategory)
             .sort((a, b) => (data[a]._isCategory.index || 0) - (data[b]._isCategory.index || 0));
 
-        sortedCats.forEach((cat) => {
+        sortedCats.forEach((cat, cIdx) => {
             categories.push(cat);
             tbody.innerHTML += `<tr class="category-row" draggable="true" data-type="category" data-id="${cat}">
-                <td colspan="3"><div class="name-cell"><span class="row-num"></span><span class="name-text">${cat}</span>
+                <td colspan="3"><div class="name-cell"><span class="row-num">${cIdx+1}.</span><span class="name-text">${cat}</span>
                 <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button></div></td></tr>`;
             
             const sortedItems = Object.keys(data[cat])
                 .filter(k => k !== '_isCategory')
                 .sort((a, b) => (data[cat][a].index || 0) - (data[cat][b].index || 0));
 
-            sortedItems.forEach((item) => {
+            sortedItems.forEach((item, iIdx) => {
                 const vals = data[cat][item];
                 tbody.innerHTML += `<tr draggable="true" data-type="item" data-category="${cat}" data-id="${item}">
-                    <td><div class="name-cell"><span class="row-num"></span><span class="name-text">${item}</span>
+                    <td><div class="name-cell"><span class="row-num">${iIdx+1})</span><span class="name-text">${item}</span>
                     <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button></div></td>
                     <td class="status-col"><button class="status-btn status-${vals.out || 'X'}" onclick="updateStatus('${cat}', '${item}', 'out', '${vals.out || 'X'}')">${vals.out || 'X'}</button></td>
                     <td class="status-col"><button class="status-btn status-${vals.in || 'X'}" onclick="updateStatus('${cat}', '${item}', 'in', '${vals.in || 'X'}')">${vals.in || 'X'}</button></td></tr>`;
             });
         });
         refreshSelectMenus();
-        renumberRows();
         addDragEvents();
     });
 };
 
+async function syncOrderToDB() {
+    const updates = {};
+    let catIdx = 0, itemIdx = 0, currentCat = '';
+    document.querySelectorAll('#checklistBody tr').forEach(row => {
+        if (row.dataset.type === 'category') {
+            currentCat = row.dataset.id;
+            updates[`travels/${currentTravel}/${currentUser}/current/${currentCat}/_isCategory/index`] = catIdx++;
+            itemIdx = 0;
+        } else {
+            updates[`travels/${currentTravel}/${currentUser}/current/${currentCat}/${row.dataset.id}/index`] = itemIdx++;
+        }
+    });
+    await update(ref(database), updates);
+}
+
 function addDragEvents() {
     const rows = document.querySelectorAll('#checklistBody tr');
     let draggedRows = [];
-
     rows.forEach(row => {
-        row.addEventListener('dragstart', (e) => {
+        row.ondragstart = (e) => {
             row.classList.add('dragging');
             if (row.dataset.type === 'category') {
-                const catId = row.dataset.id;
-                draggedRows = [row, ...document.querySelectorAll(`tr[data-type="item"][data-category="${catId}"]`)];
-                draggedRows.forEach(r => r.classList.add('dragging'));
-            } else {
-                draggedRows = [row];
-            }
-        });
-
-        row.addEventListener('dragend', async () => {
+                draggedRows = [row, ...document.querySelectorAll(`tr[data-type="item"][data-category="${row.dataset.id}"]`)];
+            } else draggedRows = [row];
+            draggedRows.forEach(r => r.classList.add('dragging'));
+        };
+        row.ondragend = () => {
             draggedRows.forEach(r => r.classList.remove('dragging'));
-            draggedRows = [];
-            renumberRows();
-            await syncOrderToDB(); // 순서 변경 완료 후 DB 동기화
-        });
-
-        row.addEventListener('dragover', (e) => {
+            syncOrderToDB();
+        };
+        row.ondragover = (e) => {
             e.preventDefault();
             const target = e.target.closest('tr');
             if (!target || draggedRows.includes(target)) return;
-
             if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-                const bounding = target.getBoundingClientRect();
-                const offset = e.clientY - bounding.top;
-                const targetCatId = target.dataset.id;
-                const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${targetCatId}"]`);
-                const lastItemOfTarget = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
-                if (offset > bounding.height / 2) lastItemOfTarget.after(...draggedRows);
-                else target.before(...draggedRows);
+                const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
+                const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
+                e.clientY - target.getBoundingClientRect().top > target.offsetHeight / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
             } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
-                const bounding = target.getBoundingClientRect();
-                const offset = e.clientY - bounding.top;
-                if (offset > bounding.height / 2) target.after(draggedRows[0]);
-                else target.before(draggedRows[0]);
+                e.clientY - target.getBoundingClientRect().top > target.offsetHeight / 2 ? target.after(draggedRows[0]) : target.before(draggedRows[0]);
             }
-        });
+        };
     });
 }
 

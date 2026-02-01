@@ -27,7 +27,7 @@
         <div class="header-row bottom-row">
             <div class="action-group">
                 <button class="btn-load" onclick="openLoadModal()">불러오기 / 한번에입력</button>
-                <button class="btn-save" onclick="saveCurrentList()">목록저장 💾</button>
+                <button class="btn-save" onclick="saveCurrentList()">목록저장(버전) 💾</button>
                 <button class="btn-reset" onclick="resetCurrentList()">새목록 🗑️</button>
             </div>
         </div>
@@ -88,19 +88,17 @@
             <h3>데이터 통합 관리</h3>
             <div class="load-grid">
                 <div class="grid-col">
-                    <h4>📁 기존 여행 목록</h4>
-                    <ul id="travelListDisplay" class="data-list"></ul>
-                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="confirmLoadTravel()">선택 불러오기</button>
+                    <h4>📁 저장된 버전 목록</h4>
+                    <ul id="savedVersionsDisplay" class="data-list"></ul>
+                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="confirmLoadVersion()">버전 불러오기</button>
                 </div>
                 <div class="grid-col">
                     <h4>📂 카테고리 한번에</h4>
-                    <p class="guide">한 줄에 하나씩 입력</p>
                     <textarea id="bulkCategoryText" rows="10" placeholder="의류&#10;세면도구"></textarea>
                     <button class="btn-main" style="width:100%; margin-top:10px;" onclick="uploadBulkCategories()">생성</button>
                 </div>
                 <div class="grid-col">
                     <h4>📦 아이템 한번에</h4>
-                    <p class="guide">카테고리 선택 후 목록 입력</p>
                     <select id="bulkItemCategorySelect" style="margin-bottom: 5px;"></select>
                     <textarea id="bulkItemText" rows="10" placeholder="여권&#10;보조배터리"></textarea>
                     <button class="btn-load" style="width:100%; margin-top:10px;" onclick="uploadBulkItems()">생성</button>
