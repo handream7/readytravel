@@ -96,16 +96,15 @@ tr.dragging { opacity: 0.4; background-color: #e0edff !important; }
 
 .category-row td { background-color: #f0f7ff; color: #007bff; }
 
-/* 접기/펼치기 버튼 모바일 최적화 */
 .fold-btn {
     background: transparent;
     border: none;
     color: #007bff;
     padding: 0;
     margin-right: 4px;
-    font-size: 1.1rem; /* 모바일에서 더 잘 보이게 크기 키움 */
+    font-size: 1.1rem;
     cursor: pointer;
-    width: 32px; /* 터치 영역 확장 */
+    width: 32px;
     height: 32px;
     display: flex;
     align-items: center;

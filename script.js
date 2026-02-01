@@ -23,6 +23,7 @@ let selectedVersionToLoad = '';
 let currentUnsubscribe = null;
 let isLocked = true;
 let foldedCategories = new Set();
+let currentDataSnapshot = null; // 현재 DB 데이터 백업용
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
@@ -54,18 +55,15 @@ window.toggleLock = () => {
 };
 
 window.toggleFold = (event, catId) => {
-    // 이벤트 버블링 방지 (터치 시 드래그 이벤트와 꼬이지 않도록)
     if (event) {
         event.stopPropagation();
         if (event.type === 'touchstart') event.preventDefault();
     }
-
     if (foldedCategories.has(catId)) foldedCategories.delete(catId);
     else foldedCategories.add(catId);
     
     const items = document.querySelectorAll(`tr[data-category="${catId}"][data-type="item"]`);
     const btn = document.querySelector(`tr[data-id="${catId}"][data-type="category"] .fold-btn`);
-    
     items.forEach(item => item.classList.toggle('hidden-item'));
     if (btn) btn.innerText = foldedCategories.has(catId) ? '▶' : '▼';
 };
@@ -79,7 +77,7 @@ window.switchUser = (user) => {
 };
 
 window.addNewTravel = () => {
-    const name = prompt("새로운 큰 여행 이름을 입력하세요:");
+    const name = prompt("새로운 여행 틀 이름을 입력하세요:");
     if (name) set(ref(database, `travelNames/${name}`), true);
 };
 
@@ -95,7 +93,7 @@ window.saveCurrentList = () => {
 };
 
 window.resetCurrentList = () => {
-    if (confirm("현재 체크리스트를 모두 비우시겠습니까?")) {
+    if (confirm("현재 실시간 체크리스트를 모두 비우시겠습니까?")) {
         remove(ref(database, `travels/${currentTravel}/${currentUser}/current`));
     }
 };
@@ -170,15 +168,39 @@ window.confirmLoadVersion = () => {
     });
 };
 
+// 중복 처리 공통 함수
+function handleDuplicates(newItems, existingItems, type, callback) {
+    const duplicates = newItems.filter(item => existingItems.includes(item));
+    if (duplicates.length > 0) {
+        document.getElementById('dupMsg').innerHTML = `입력하신 목록 중 <b>${duplicates.length}개</b>의 중복 항목이 있습니다.<br>(중복: ${duplicates.join(', ')})<br><br>중복을 제외하고 추가할까요?`;
+        document.getElementById('duplicateModal').style.display = 'flex';
+        
+        document.getElementById('btnRemoveDup').onclick = () => {
+            const filtered = newItems.filter(item => !existingItems.includes(item));
+            callback(filtered);
+            closeModal('duplicateModal');
+        };
+        document.getElementById('btnKeepDup').onclick = () => {
+            callback(newItems);
+            closeModal('duplicateModal');
+        };
+    } else {
+        callback(newItems);
+    }
+}
+
 window.uploadBulkCategories = () => {
     const text = document.getElementById('bulkCategoryText').value;
     if (!text.trim()) return;
     const cats = text.split('\n').map(c => c.trim()).filter(c => c !== "");
-    const updates = {};
-    cats.forEach((c, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${c}/_isCategory`] = { index: categories.length + idx }; });
-    update(ref(database), updates).then(() => {
-        document.getElementById('bulkCategoryText').value = '';
-        alert("카테고리 일괄 생성 완료!");
+    
+    handleDuplicates(cats, categories, 'category', (targetCats) => {
+        const updates = {};
+        targetCats.forEach((c, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${c}/_isCategory`] = { index: categories.length + idx }; });
+        update(ref(database), updates).then(() => {
+            document.getElementById('bulkCategoryText').value = '';
+            alert("처리 완료!");
+        });
     });
 };
 
@@ -187,11 +209,19 @@ window.uploadBulkItems = () => {
     const text = document.getElementById('bulkItemText').value;
     if (!text.trim()) return;
     const items = text.split('\n').map(i => i.trim()).filter(i => i !== "");
-    const updates = {};
-    items.forEach((item, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${item}`] = { out: 'X', in: 'X', index: idx }; });
-    update(ref(database), updates).then(() => {
-        document.getElementById('bulkItemText').value = '';
-        alert("아이템 일괄 생성 완료!");
+
+    // 현재 카테고리 내의 기존 아이템 이름들 가져오기
+    const existingItems = currentDataSnapshot && currentDataSnapshot[cat] 
+        ? Object.keys(currentDataSnapshot[cat]).filter(k => k !== '_isCategory') 
+        : [];
+
+    handleDuplicates(items, existingItems, 'item', (targetItems) => {
+        const updates = {};
+        targetItems.forEach((item, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${item}`] = { out: 'X', in: 'X', index: existingItems.length + idx }; });
+        update(ref(database), updates).then(() => {
+            document.getElementById('bulkItemText').value = '';
+            alert("처리 완료!");
+        });
     });
 };
 
@@ -221,6 +251,7 @@ window.loadData = () => {
     if (currentUnsubscribe) currentUnsubscribe();
     currentUnsubscribe = onValue(ref(database, `travels/${currentTravel}/${currentUser}/current`), (snapshot) => {
         const data = snapshot.val();
+        currentDataSnapshot = data; // 중복 체크용 스냅샷 저장
         const tbody = document.getElementById('checklistBody');
         tbody.innerHTML = ''; categories = [];
         if (!data) { refreshSelectMenus(); return; }
@@ -316,13 +347,11 @@ function addDragEvents() {
             e.preventDefault();
             onDragMove(e.clientY, e.target.closest('tr'));
         };
-
         row.addEventListener('touchstart', (e) => {
             if (isLocked) return;
             if (e.target.closest('button') || e.target.closest('select') || e.target.closest('textarea')) return;
             onDragStart(row);
         }, { passive: false });
-
         row.addEventListener('touchmove', (e) => {
             if (isLocked || draggedRows.length === 0) return;
             e.preventDefault();
@@ -330,7 +359,6 @@ function addDragEvents() {
             const target = document.elementFromPoint(e.touches[0].clientX, touchY)?.closest('tr');
             onDragMove(touchY, target);
         }, { passive: false });
-
         row.addEventListener('touchend', onDragEnd);
     });
 }

@@ -112,6 +112,18 @@
         </div>
     </div>
 
+    <div id="duplicateModal" class="modal">
+        <div class="modal-content">
+            <h3>⚠️ 중복 항목 확인</h3>
+            <p id="dupMsg" style="font-size: 0.9rem; line-height: 1.5; color: #64748b; margin-bottom: 20px;"></p>
+            <div class="modal-buttons" style="flex-direction: column; gap: 8px;">
+                <button class="btn-load full-width-btn" id="btnRemoveDup">중복 빼고 추가</button>
+                <button class="btn-main full-width-btn" id="btnKeepDup">그냥 추가</button>
+                <button class="btn-sub full-width-btn" onclick="closeModal('duplicateModal')">취소</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
