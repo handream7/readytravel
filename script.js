@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCvwQgyakS9eh9R0TYRODmc5EXJAoCbtAc",
@@ -12,15 +12,14 @@ const firebaseConfig = {
     measurementId: "G-7WBH433JKG"
 };
 
-// Firebase 초기화
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 let currentUser = '강민성';
 let currentTravel = 'first';
+let categories = [];
 const statusCycle = { 'X': '△', '△': 'O', 'O': 'X' };
 
-// 함수들을 전역(window) 객체에 할당 (HTML 버튼에서 호출 가능하도록)
 window.switchUser = (user) => {
     currentUser = user;
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -34,8 +33,7 @@ window.addNewTravel = () => {
     if (name) {
         const select = document.getElementById('travelSelect');
         const option = document.createElement('option');
-        option.value = name;
-        option.text = name;
+        option.value = name; option.text = name;
         select.add(option);
         select.value = name;
         currentTravel = name;
@@ -46,21 +44,69 @@ window.addNewTravel = () => {
 window.addCategory = () => {
     const category = prompt("새 카테고리 이름:");
     if (!category) return;
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}`), {
-        _isCategory: true
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}`), { _isCategory: true });
+};
+
+window.openModal = (id) => {
+    if (id === 'itemModal' || id === 'loadModal') {
+        const selects = ['categorySelect', 'bulkCategorySelect'];
+        selects.forEach(sId => {
+            const select = document.getElementById(sId);
+            select.innerHTML = '';
+            if (categories.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "미분류"; opt.text = "없음 (미분류)";
+                select.add(opt);
+            } else {
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat; opt.text = cat;
+                    select.add(opt);
+                });
+                const optNone = document.createElement('option');
+                optNone.value = "미분류"; optNone.text = "없음";
+                select.add(optNone);
+            }
+        });
+    }
+    document.getElementById(id).style.display = 'flex';
+};
+
+window.addItem = () => window.openModal('itemModal');
+window.openLoadModal = () => window.openModal('loadModal');
+
+window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+
+window.saveItem = () => {
+    const category = document.getElementById('categorySelect').value;
+    const itemName = document.getElementById('newItemName').value;
+    if (!itemName) return alert("아이템 이름을 입력하세요!");
+
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), {
+        prep_out: 'X', done_out: 'X', prep_in: 'X', done_in: 'X'
+    }).then(() => {
+        document.getElementById('newItemName').value = '';
+        closeModal('itemModal');
     });
 };
 
-window.addItem = () => {
-    const category = prompt("어느 카테고리에 추가할까요?");
-    const itemName = prompt("아이템 이름:");
-    if (!category || !itemName) return;
-    
-    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), {
-        prep_out: 'X',
-        done_out: 'X',
-        prep_in: 'X',
-        done_in: 'X'
+window.uploadBulk = () => {
+    const category = document.getElementById('bulkCategorySelect').value;
+    const text = document.getElementById('bulkText').value;
+    if (!text.trim()) return alert("목록을 입력하세요!");
+
+    const items = text.split('\n').map(i => i.trim()).filter(i => i !== "");
+    const updates = {};
+    items.forEach(item => {
+        updates[`travels/${currentTravel}/${currentUser}/${category}/${item}`] = {
+            prep_out: 'X', done_out: 'X', prep_in: 'X', done_in: 'X'
+        };
+    });
+
+    update(ref(database), updates).then(() => {
+        document.getElementById('bulkText').value = '';
+        alert(`${items.length}개의 아이템이 추가되었습니다.`);
+        closeModal('loadModal');
     });
 };
 
@@ -83,11 +129,12 @@ window.loadData = () => {
         const data = snapshot.val();
         const tbody = document.getElementById('checklistBody');
         tbody.innerHTML = '';
+        categories = [];
 
         if (!data) return;
 
         for (let category in data) {
-            // 카테고리 행
+            categories.push(category);
             const catRow = `<tr class="category-row"><td colspan="6">${category}</td></tr>`;
             tbody.innerHTML += catRow;
 
@@ -96,12 +143,12 @@ window.loadData = () => {
                 const vals = data[category][item];
                 const row = `
                     <tr>
-                        <td>${item}</td>
+                        <td style="text-align:left; padding-left:35px;">${item}</td>
                         <td><button class="status-btn status-${vals.prep_out}" onclick="updateStatus('${category}', '${item}', 'prep_out', '${vals.prep_out}')">${vals.prep_out}</button></td>
                         <td><button class="status-btn status-${vals.done_out}" onclick="updateStatus('${category}', '${item}', 'done_out', '${vals.done_out}')">${vals.done_out}</button></td>
                         <td><button class="status-btn status-${vals.prep_in}" onclick="updateStatus('${category}', '${item}', 'prep_in', '${vals.prep_in}')">${vals.prep_in}</button></td>
                         <td><button class="status-btn status-${vals.done_in}" onclick="updateStatus('${category}', '${item}', 'done_in', '${vals.done_in}')">${vals.done_in}</button></td>
-                        <td><button onclick="deleteItem('${category}', '${item}')">삭제</button></td>
+                        <td><button class="delete-btn" onclick="deleteItem('${category}', '${item}')">삭제</button></td>
                     </tr>
                 `;
                 tbody.innerHTML += row;
@@ -110,5 +157,4 @@ window.loadData = () => {
     });
 };
 
-// 초기 로딩
 window.loadData();

@@ -1,160 +1,162 @@
-/* 기본 폰트 및 배경 설정 */
 @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600&display=swap');
 
 body {
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    font-family: 'Pretendard', sans-serif;
     margin: 0;
-    padding: 20px;
-    background-color: #f0f7ff; /* 아주 연한 파스텔 블루 */
+    padding: 15px;
+    background-color: #f0f7ff;
     color: #334155;
 }
 
-/* 상단 헤더 디자인 */
 header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     background: #ffffff;
-    padding: 20px 30px;
+    padding: 20px;
     border-radius: 16px;
     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.08);
-    margin-bottom: 30px;
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
 }
 
-.header-left button {
-    background-color: #e0edff;
-    color: #007bff;
+.header-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+}
+
+.bottom-row {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 20px;
+}
+
+.action-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+button {
     border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-weight: 600;
     cursor: pointer;
-    margin-right: 10px;
     transition: all 0.2s;
+    padding: 12px 20px;
+    white-space: nowrap;
 }
 
-.header-left button:hover {
-    background-color: #007bff;
-    color: white;
-}
+.btn-main { background-color: #e0edff; color: #007bff; }
+.btn-main:hover { background-color: #007bff; color: white; }
+.btn-sub { background-color: #f1f5f9; color: #64748b; }
+.btn-load { background-color: #007bff; color: white; }
 
-/* 드롭다운 및 우측 메뉴 */
-#travelSelect {
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #d1e3f8;
+#travelSelect, #categorySelect, #bulkCategorySelect {
+    padding: 10px 15px;
+    border-radius: 10px;
+    border: 2px solid #eef2f7;
+    font-weight: 600;
     background-color: white;
-    margin-right: 8px;
 }
 
-.btn-load {
-    background-color: #007bff !important;
-    color: white !important;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-/* 유저 탭 디자인 */
 .user-tabs {
-    display: inline-flex;
+    display: flex;
     background: #f1f5f9;
     padding: 5px;
     border-radius: 12px;
-    margin-left: 20px;
 }
 
-.tab-btn {
-    padding: 8px 20px;
-    border: none;
-    cursor: pointer;
-    background: transparent;
-    border-radius: 8px;
-    color: #64748b;
-    font-weight: 600;
-    transition: 0.3s;
-}
+.tab-btn { padding: 8px 20px; background: transparent; color: #64748b; }
+.tab-btn.active { background: white; color: #007bff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
-.tab-btn.active {
-    background: white;
-    color: #007bff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
+main { width: 100%; overflow-x: auto; }
 
-/* 테이블 디자인 */
 table {
+    min-width: 800px;
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
     overflow: hidden;
 }
 
 th {
-    background-color: #f8fbff;
-    color: #64748b;
-    font-weight: 600;
-    padding: 18px;
+    background: #f8fbff;
+    color: #475569;
+    font-size: 1.1rem;
+    padding: 22px 10px;
     border-bottom: 2px solid #eef2f7;
 }
 
 td {
-    padding: 15px;
+    padding: 22px 15px;
+    font-size: 1.25rem;
     border-bottom: 1px solid #f1f5f9;
-    vertical-align: middle;
-}
-
-/* 카테고리 구분 행 */
-.category-row {
-    background-color: #f0f7ff;
-    font-weight: bold;
-    color: #007bff;
-    text-align: left;
+    font-weight: 500;
 }
 
 .category-row td {
-    padding: 12px 25px;
-    font-size: 0.95rem;
+    background-color: #eef6ff;
+    color: #007bff;
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-align: left !important;
+    padding-left: 25px;
 }
 
-/* 상태 버튼 (X, △, O) */
 .status-btn {
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    border: 2px solid #e2e8f0;
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+    border-radius: 15px;
+    border: 3px solid #e2e8f0;
+}
+
+.status-X { color: #cbd5e1; }
+.status-△ { color: #fbbf24; background: #fffbeb; border-color: #fbbf24; }
+.status-O { color: #10b981; background: #ecfdf5; border-color: #10b981; }
+
+.delete-btn { background: none; color: #f87171; font-size: 0.9rem; text-decoration: underline; }
+
+/* 모달 및 텍스트 영역 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
     background: white;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: bold;
-    transition: all 0.2s;
+    padding: 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 450px;
 }
 
-.status-X { color: #cbd5e1; } /* 준비 안됨 - 회색 */
-.status-△ { 
-    color: #fbbf24; 
-    background-color: #fffbeb; 
-    border-color: #fbbf24; 
-} /* 준비중 - 노란색 */
-.status-O { 
-    color: #10b981; 
-    background-color: #ecfdf5; 
-    border-color: #10b981; 
-} /* 완료 - 초록색 */
-
-/* 삭제 버튼 */
-.delete-btn {
-    background: none;
-    border: none;
-    color: #f87171;
-    cursor: pointer;
-    font-size: 0.85rem;
-    text-decoration: underline;
+textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 1rem;
+    resize: none;
+    box-sizing: border-box;
 }
 
-.delete-btn:hover {
-    color: #ef4444;
+.modal-content h3 { margin-top: 0; color: #007bff; }
+.modal-content label { display: block; margin: 15px 0 5px; font-weight: bold; }
+.modal-content select, .modal-content input {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem; margin-bottom: 10px; box-sizing: border-box;
 }
+
+.modal-buttons { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }

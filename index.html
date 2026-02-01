@@ -8,19 +8,24 @@
 </head>
 <body>
     <header>
-        <div class="header-left">
-            <button onclick="addCategory()">카테고리 추가</button>
-            <button onclick="addItem()">아이템 추가</button>
-        </div>
-        <div class="header-right">
-            <select id="travelSelect">
-                <option value="first">첫 여행</option>
-            </select>
-            <button onclick="addNewTravel()">여행 추가</button>
-            <button onclick="loadData()" class="btn-load">불러오기</button>
+        <div class="header-row top-row">
+            <div class="left-group">
+                <select id="travelSelect" onchange="loadData()">
+                    <option value="first">첫 여행</option>
+                </select>
+                <button class="btn-sub" onclick="addNewTravel()">여행 추가 +</button>
+            </div>
             <div class="user-tabs">
                 <button class="tab-btn active" onclick="switchUser('강민성')">강민성</button>
                 <button class="tab-btn" onclick="switchUser('이지훈')">이지훈</button>
+            </div>
+        </div>
+
+        <div class="header-row bottom-row">
+            <div class="action-group">
+                <button class="btn-main" onclick="addCategory()">카테고리 추가 +</button>
+                <button class="btn-main" onclick="addItem()">아이템 추가 +</button>
+                <button class="btn-load" onclick="openLoadModal()">불러오기 / 업로드 ↻</button>
             </div>
         </div>
     </header>
@@ -37,13 +42,40 @@
                     <th>삭제</th>
                 </tr>
             </thead>
-            <tbody id="checklistBody">
-                </tbody>
+            <tbody id="checklistBody"></tbody>
         </table>
     </main>
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <h3>아이템 추가</h3>
+            <label>카테고리 선택</label>
+            <select id="categorySelect"></select>
+            <label>아이템 이름</label>
+            <input type="text" id="newItemName" placeholder="예: 여권, 보조배터리">
+            <div class="modal-buttons">
+                <button class="btn-load" onclick="saveItem()">저장</button>
+                <button class="btn-sub" onclick="closeModal('itemModal')">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadModal" class="modal">
+        <div class="modal-content">
+            <h3>데이터 불러오기 / 업로드</h3>
+            <div class="upload-section">
+                <label>줄글로 대량 추가 (한 줄에 하나씩)</label>
+                <select id="bulkCategorySelect" style="margin-bottom: 5px;"></select>
+                <textarea id="bulkText" rows="5" placeholder="여권&#10;지갑&#10;보조배터리&#10;형태로 입력하세요"></textarea>
+                <button class="btn-load" style="width:100%; margin-top:10px;" onclick="uploadBulk()">대량 추가하기</button>
+            </div>
+            <hr style="margin: 20px 0; border: 0.5px solid #eee;">
+            <div class="modal-buttons">
+                <button class="btn-sub" onclick="closeModal('loadModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
