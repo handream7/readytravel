@@ -15,7 +15,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-let currentUser = '강민성';
+// 로컬 스토리지에서 마지막으로 선택한 사용자 가져오기 (없으면 강민성 기본)
+let currentUser = localStorage.getItem('readyTravelUser') || '강민성';
 let currentTravel = '첫여행';
 let categories = [];
 let travels = [];
@@ -23,7 +24,7 @@ let selectedVersionToLoad = '';
 let currentUnsubscribe = null;
 let isLocked = true;
 let foldedCategories = new Set();
-let currentDataSnapshot = null; // 현재 DB 데이터 백업용
+let currentDataSnapshot = null;
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
@@ -38,6 +39,9 @@ onValue(ref(database, 'travelNames'), (snapshot) => {
     if (travels.includes(currentVal)) select.value = currentVal;
     else select.value = travels[0];
     currentTravel = select.value;
+    
+    // 초기 로드 시 탭 활성화 상태 동기화
+    updateUserTabUI();
 });
 
 window.toggleLock = () => {
@@ -68,11 +72,19 @@ window.toggleFold = (event, catId) => {
     if (btn) btn.innerText = foldedCategories.has(catId) ? '▶' : '▼';
 };
 
+// 사용자 UI 탭 업데이트 전용 함수
+function updateUserTabUI() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.id === `tab-${currentUser}`) btn.classList.add('active');
+    });
+}
+
 window.switchUser = (user) => {
     currentUser = user;
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.innerText === user);
-    });
+    // 로컬 스토리지에 현재 사용자 저장 (새로고침해도 유지되게 함)
+    localStorage.setItem('readyTravelUser', user);
+    updateUserTabUI();
     loadData();
 };
 
@@ -123,9 +135,17 @@ window.saveItem = () => {
     const cat = document.getElementById('categorySelect').value;
     const name = document.getElementById('newItemName').value.trim();
     if (!name) return;
+
+    const allItems = getAllExistingItems();
+    let finalName = name;
+    if (allItems.includes(name)) {
+        if (!confirm(`'${name}'은(는) 이미 존재합니다. 숫자(2)를 붙여 추가할까요?`)) return;
+        finalName = getNumberedName(name, allItems);
+    }
+
     get(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}`)).then(snap => {
         const idx = snap.exists() ? Object.keys(snap.val()).length : 0;
-        set(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}/${name}`), { out: 'X', in: 'X', index: idx })
+        set(ref(database, `travels/${currentTravel}/${currentUser}/current/${cat}/${finalName}`), { out: 'X', in: 'X', index: idx })
             .then(() => {
                 document.getElementById('newItemName').value = '';
                 closeModal('itemModal');
@@ -168,24 +188,46 @@ window.confirmLoadVersion = () => {
     });
 };
 
-// 중복 처리 공통 함수
-function handleDuplicates(newItems, existingItems, type, callback) {
+function getAllExistingItems() {
+    if (!currentDataSnapshot) return [];
+    let items = [];
+    Object.keys(currentDataSnapshot).forEach(cat => {
+        const catData = currentDataSnapshot[cat];
+        Object.keys(catData).forEach(key => {
+            if (key !== '_isCategory') items.push(key);
+        });
+    });
+    return items;
+}
+
+function getNumberedName(name, existingList) {
+    let baseName = name.replace(/\(\d+\)$/, "").trim();
+    let counter = 2;
+    let newName = `${baseName}(${counter})`;
+    while (existingList.includes(newName)) {
+        counter++;
+        newName = `${baseName}(${counter})`;
+    }
+    return newName;
+}
+
+function handleDuplicates(newItems, existingItems, callback) {
     const duplicates = newItems.filter(item => existingItems.includes(item));
     if (duplicates.length > 0) {
-        document.getElementById('dupMsg').innerHTML = `입력하신 목록 중 <b>${duplicates.length}개</b>의 중복 항목이 있습니다.<br>(중복: ${duplicates.join(', ')})<br><br>중복을 제외하고 추가할까요?`;
+        document.getElementById('dupMsg').innerHTML = `전체 목록 중 <b>${duplicates.length}개</b>의 중복 항목이 발견되었습니다.<br>(중복: ${duplicates.join(', ')})<br><br><b>중복 제외</b>: 이미 있는 것은 빼고 새로 입력한 것만 추가합니다.<br><b>숫자 붙여 추가</b>: 이름 뒤에 (2) 등을 붙여 강제로 추가합니다.`;
         document.getElementById('duplicateModal').style.display = 'flex';
         
         document.getElementById('btnRemoveDup').onclick = () => {
             const filtered = newItems.filter(item => !existingItems.includes(item));
-            callback(filtered);
+            callback(filtered, false);
             closeModal('duplicateModal');
         };
         document.getElementById('btnKeepDup').onclick = () => {
-            callback(newItems);
+            callback(newItems, true);
             closeModal('duplicateModal');
         };
     } else {
-        callback(newItems);
+        callback(newItems, false);
     }
 }
 
@@ -194,12 +236,17 @@ window.uploadBulkCategories = () => {
     if (!text.trim()) return;
     const cats = text.split('\n').map(c => c.trim()).filter(c => c !== "");
     
-    handleDuplicates(cats, categories, 'category', (targetCats) => {
+    handleDuplicates(cats, categories, (targetCats, shouldNumber) => {
         const updates = {};
-        targetCats.forEach((c, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${c}/_isCategory`] = { index: categories.length + idx }; });
+        let allCats = [...categories];
+        targetCats.forEach((c, idx) => {
+            let finalName = (shouldNumber && categories.includes(c)) ? getNumberedName(c, allCats) : c;
+            if (shouldNumber) allCats.push(finalName);
+            updates[`travels/${currentTravel}/${currentUser}/current/${finalName}/_isCategory`] = { index: categories.length + idx };
+        });
         update(ref(database), updates).then(() => {
             document.getElementById('bulkCategoryText').value = '';
-            alert("처리 완료!");
+            alert("카테고리 처리 완료!");
         });
     });
 };
@@ -210,17 +257,23 @@ window.uploadBulkItems = () => {
     if (!text.trim()) return;
     const items = text.split('\n').map(i => i.trim()).filter(i => i !== "");
 
-    // 현재 카테고리 내의 기존 아이템 이름들 가져오기
-    const existingItems = currentDataSnapshot && currentDataSnapshot[cat] 
-        ? Object.keys(currentDataSnapshot[cat]).filter(k => k !== '_isCategory') 
-        : [];
+    const allExistingItems = getAllExistingItems();
 
-    handleDuplicates(items, existingItems, 'item', (targetItems) => {
+    handleDuplicates(items, allExistingItems, (targetItems, shouldNumber) => {
         const updates = {};
-        targetItems.forEach((item, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${item}`] = { out: 'X', in: 'X', index: existingItems.length + idx }; });
+        let currentAll = [...allExistingItems];
+        const catItemCount = currentDataSnapshot && currentDataSnapshot[cat] 
+            ? Object.keys(currentDataSnapshot[cat]).filter(k => k !== '_isCategory').length 
+            : 0;
+
+        targetItems.forEach((item, idx) => {
+            let finalName = (shouldNumber && allExistingItems.includes(item)) ? getNumberedName(item, currentAll) : item;
+            if (shouldNumber) currentAll.push(finalName);
+            updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${finalName}`] = { out: 'X', in: 'X', index: catItemCount + idx };
+        });
         update(ref(database), updates).then(() => {
             document.getElementById('bulkItemText').value = '';
-            alert("처리 완료!");
+            alert("아이템 처리 완료!");
         });
     });
 };
@@ -251,7 +304,7 @@ window.loadData = () => {
     if (currentUnsubscribe) currentUnsubscribe();
     currentUnsubscribe = onValue(ref(database, `travels/${currentTravel}/${currentUser}/current`), (snapshot) => {
         const data = snapshot.val();
-        currentDataSnapshot = data; // 중복 체크용 스냅샷 저장
+        currentDataSnapshot = data; 
         const tbody = document.getElementById('checklistBody');
         tbody.innerHTML = ''; categories = [];
         if (!data) { refreshSelectMenus(); return; }
@@ -347,11 +400,13 @@ function addDragEvents() {
             e.preventDefault();
             onDragMove(e.clientY, e.target.closest('tr'));
         };
+
         row.addEventListener('touchstart', (e) => {
             if (isLocked) return;
             if (e.target.closest('button') || e.target.closest('select') || e.target.closest('textarea')) return;
             onDragStart(row);
         }, { passive: false });
+
         row.addEventListener('touchmove', (e) => {
             if (isLocked || draggedRows.length === 0) return;
             e.preventDefault();
@@ -359,6 +414,7 @@ function addDragEvents() {
             const target = document.elementFromPoint(e.touches[0].clientX, touchY)?.closest('tr');
             onDragMove(touchY, target);
         }, { passive: false });
+
         row.addEventListener('touchend', onDragEnd);
     });
 }

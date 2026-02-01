@@ -19,8 +19,8 @@
 
         <div class="header-row middle-row">
             <div class="user-tabs">
-                <button class="tab-btn active" onclick="switchUser('강민성')">강민성</button>
-                <button class="tab-btn" onclick="switchUser('이지훈')">이지훈</button>
+                <button id="tab-강민성" class="tab-btn active" onclick="switchUser('강민성')">강민성</button>
+                <button id="tab-이지훈" class="tab-btn" onclick="switchUser('이지훈')">이지훈</button>
             </div>
         </div>
 
@@ -114,11 +114,11 @@
 
     <div id="duplicateModal" class="modal">
         <div class="modal-content">
-            <h3>⚠️ 중복 항목 확인</h3>
+            <h3>⚠️ 중복 항목 감지</h3>
             <p id="dupMsg" style="font-size: 0.9rem; line-height: 1.5; color: #64748b; margin-bottom: 20px;"></p>
             <div class="modal-buttons" style="flex-direction: column; gap: 8px;">
-                <button class="btn-load full-width-btn" id="btnRemoveDup">중복 빼고 추가</button>
-                <button class="btn-main full-width-btn" id="btnKeepDup">그냥 추가</button>
+                <button class="btn-load full-width-btn" id="btnRemoveDup">중복 제외하고 추가</button>
+                <button class="btn-main full-width-btn" id="btnKeepDup">이름 뒤에 숫자 붙여 추가</button>
                 <button class="btn-sub full-width-btn" onclick="closeModal('duplicateModal')">취소</button>
             </div>
         </div>
