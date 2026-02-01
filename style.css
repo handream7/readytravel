@@ -64,7 +64,6 @@ button {
 .btn-save { background-color: #10b981; color: white; }
 .btn-reset { background-color: #fee2e2; color: #ef4444; border: 1px solid #fecaca; }
 
-/* 잠금 버튼 */
 .btn-lock { background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
 .btn-lock.unlocked { background-color: #fff7ed; color: #ea580c; border: 1px solid #fdba74; }
 
@@ -97,14 +96,28 @@ tr.dragging { opacity: 0.4; background-color: #e0edff !important; }
 
 .category-row td { background-color: #f0f7ff; color: #007bff; }
 
-/* 잠금 해제 상태에서만 핸들 표시 */
-body.is-unlocked .category-row .name-text::before { 
-    content: '≡'; 
-    margin-right: 8px; 
-    color: #007bff; 
-    cursor: grab; 
-    font-weight: bold; 
+/* 접기/펼치기 버튼 스타일 */
+.fold-btn {
+    background: transparent;
+    border: none;
+    color: #007bff;
+    padding: 0 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
+
+/* 숨겨진 아이템 행 처리 */
+tr.hidden-item {
+    display: none;
+}
+
+body.is-unlocked .category-row .name-text::before { content: '≡'; margin-right: 8px; color: #007bff; cursor: grab; font-weight: bold; }
 
 .status-btn { width: 38px; height: 38px; font-size: 16px; border-radius: 8px; border: 2px solid #e2e8f0; background: white; }
 .status-O { color: white; background: #10b981; border-color: #10b981; }

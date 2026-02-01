@@ -21,7 +21,8 @@ let categories = [];
 let travels = [];
 let selectedVersionToLoad = '';
 let currentUnsubscribe = null;
-let isLocked = true; // 기본 상태: 잠금
+let isLocked = true;
+let foldedCategories = new Set(); // 접힌 카테고리 ID를 저장하는 Set
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
@@ -50,6 +51,21 @@ window.toggleLock = () => {
         lockBtn.classList.add('unlocked');
         document.body.classList.add('is-unlocked');
     }
+};
+
+// 접기/펼치기 토글 함수
+window.toggleFold = (catId) => {
+    if (foldedCategories.has(catId)) {
+        foldedCategories.delete(catId);
+    } else {
+        foldedCategories.add(catId);
+    }
+    // 화면 다시 그리지 않고 클래스만 조작 (성능 최적화)
+    const items = document.querySelectorAll(`tr[data-category="${catId}"][data-type="item"]`);
+    const btn = document.querySelector(`tr[data-id="${catId}"][data-type="category"] .fold-btn`);
+    
+    items.forEach(item => item.classList.toggle('hidden-item'));
+    if (btn) btn.innerText = foldedCategories.has(catId) ? '▶' : '▼';
 };
 
 window.switchUser = (user) => {
@@ -216,8 +232,13 @@ window.loadData = () => {
 
         sortedCats.forEach((cat, cIdx) => {
             categories.push(cat);
+            const isFolded = foldedCategories.has(cat);
+            
+            // 카테고리 행: 접기 버튼 추가
             tbody.innerHTML += `<tr class="category-row" draggable="true" data-type="category" data-id="${cat}">
-                <td colspan="3"><div class="name-cell"><span class="row-num">${cIdx+1}.</span><span class="name-text">${cat}</span>
+                <td colspan="3"><div class="name-cell">
+                <button class="fold-btn" onclick="toggleFold('${cat}')">${isFolded ? '▶' : '▼'}</button>
+                <span class="row-num">${cIdx+1}.</span><span class="name-text">${cat}</span>
                 <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button></div></td></tr>`;
             
             const sortedItems = Object.keys(data[cat])
@@ -226,8 +247,10 @@ window.loadData = () => {
 
             sortedItems.forEach((item, iIdx) => {
                 const vals = data[cat][item];
-                tbody.innerHTML += `<tr draggable="true" data-type="item" data-category="${cat}" data-id="${item}">
-                    <td><div class="name-cell"><span class="row-num">${iIdx+1})</span><span class="name-text">${item}</span>
+                // 접혀있는 상태라면 클래스 추가
+                tbody.innerHTML += `<tr draggable="true" data-type="item" data-category="${cat}" data-id="${item}" class="${isFolded ? 'hidden-item' : ''}">
+                    <td><div class="name-cell" style="padding-left: 32px;">
+                    <span class="row-num">${iIdx+1})</span><span class="name-text">${item}</span>
                     <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button></div></td>
                     <td class="status-col"><button class="status-btn status-${vals.out || 'X'}" onclick="updateStatus('${cat}', '${item}', 'out', '${vals.out || 'X'}')">${vals.out || 'X'}</button></td>
                     <td class="status-col"><button class="status-btn status-${vals.in || 'X'}" onclick="updateStatus('${cat}', '${item}', 'in', '${vals.in || 'X'}')">${vals.in || 'X'}</button></td></tr>`;
@@ -259,10 +282,10 @@ function addDragEvents() {
     let draggedRows = [];
 
     const onDragStart = (target) => {
-        if (isLocked) return; // 잠금 상태면 드래그 시작 금지
+        if (isLocked) return;
         target.classList.add('dragging');
         if (target.dataset.type === 'category') {
-            draggedRows = [target, ...document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`)];
+            draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
         } else {
             draggedRows = [target];
         }
@@ -270,7 +293,7 @@ function addDragEvents() {
     };
 
     const onDragEnd = async () => {
-        if (isLocked || draggedRows.length === 0) return;
+        if (draggedRows.length === 0) return;
         draggedRows.forEach(r => r.classList.remove('dragging'));
         draggedRows = [];
         await syncOrderToDB();
@@ -282,7 +305,7 @@ function addDragEvents() {
         const offset = y - bounding.top;
 
         if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-            const targetItems = document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`);
+            const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
             const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
             offset > bounding.height / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
         } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
@@ -298,16 +321,15 @@ function addDragEvents() {
             onDragMove(e.clientY, e.target.closest('tr'));
         };
 
-        // 모바일 터치 이벤트 핸들러 강화
         row.addEventListener('touchstart', (e) => {
-            if (isLocked) return; // 잠금 시 무시
+            if (isLocked) return;
             if (e.target.closest('button') || e.target.closest('select') || e.target.closest('textarea')) return;
             onDragStart(row);
         }, { passive: false });
 
         row.addEventListener('touchmove', (e) => {
             if (isLocked || draggedRows.length === 0) return;
-            e.preventDefault(); // 드래그 중 스크롤 방지
+            e.preventDefault();
             const touchY = e.touches[0].clientY;
             const target = document.elementFromPoint(e.touches[0].clientX, touchY)?.closest('tr');
             onDragMove(touchY, target);
