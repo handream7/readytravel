@@ -22,7 +22,7 @@ let travels = [];
 let selectedVersionToLoad = '';
 let currentUnsubscribe = null;
 let isLocked = true;
-let foldedCategories = new Set(); // 접힌 카테고리 ID를 저장하는 Set
+let foldedCategories = new Set();
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
@@ -53,14 +53,16 @@ window.toggleLock = () => {
     }
 };
 
-// 접기/펼치기 토글 함수
-window.toggleFold = (catId) => {
-    if (foldedCategories.has(catId)) {
-        foldedCategories.delete(catId);
-    } else {
-        foldedCategories.add(catId);
+window.toggleFold = (event, catId) => {
+    // 이벤트 버블링 방지 (터치 시 드래그 이벤트와 꼬이지 않도록)
+    if (event) {
+        event.stopPropagation();
+        if (event.type === 'touchstart') event.preventDefault();
     }
-    // 화면 다시 그리지 않고 클래스만 조작 (성능 최적화)
+
+    if (foldedCategories.has(catId)) foldedCategories.delete(catId);
+    else foldedCategories.add(catId);
+    
     const items = document.querySelectorAll(`tr[data-category="${catId}"][data-type="item"]`);
     const btn = document.querySelector(`tr[data-id="${catId}"][data-type="category"] .fold-btn`);
     
@@ -77,7 +79,7 @@ window.switchUser = (user) => {
 };
 
 window.addNewTravel = () => {
-    const name = prompt("새로운 여행 이름을 입력하세요:");
+    const name = prompt("새로운 큰 여행 이름을 입력하세요:");
     if (name) set(ref(database, `travelNames/${name}`), true);
 };
 
@@ -93,7 +95,7 @@ window.saveCurrentList = () => {
 };
 
 window.resetCurrentList = () => {
-    if (confirm("현재 실시간 체크리스트를 모두 비우시겠습니까?")) {
+    if (confirm("현재 체크리스트를 모두 비우시겠습니까?")) {
         remove(ref(database, `travels/${currentTravel}/${currentUser}/current`));
     }
 };
@@ -156,10 +158,7 @@ window.setVersionToLoad = (name) => {
 window.deleteVersion = (event, name) => {
     event.stopPropagation();
     if (confirm(`'${name}' 버전을 삭제하시겠습니까?`)) {
-        remove(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${name}`))
-            .then(() => {
-                if (selectedVersionToLoad === name) selectedVersionToLoad = '';
-            });
+        remove(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${name}`));
     }
 };
 
@@ -233,11 +232,9 @@ window.loadData = () => {
         sortedCats.forEach((cat, cIdx) => {
             categories.push(cat);
             const isFolded = foldedCategories.has(cat);
-            
-            // 카테고리 행: 접기 버튼 추가
             tbody.innerHTML += `<tr class="category-row" draggable="true" data-type="category" data-id="${cat}">
                 <td colspan="3"><div class="name-cell">
-                <button class="fold-btn" onclick="toggleFold('${cat}')">${isFolded ? '▶' : '▼'}</button>
+                <button class="fold-btn" onclick="toggleFold(event, '${cat}')" ontouchstart="toggleFold(event, '${cat}')">${isFolded ? '▶' : '▼'}</button>
                 <span class="row-num">${cIdx+1}.</span><span class="name-text">${cat}</span>
                 <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button></div></td></tr>`;
             
@@ -247,7 +244,6 @@ window.loadData = () => {
 
             sortedItems.forEach((item, iIdx) => {
                 const vals = data[cat][item];
-                // 접혀있는 상태라면 클래스 추가
                 tbody.innerHTML += `<tr draggable="true" data-type="item" data-category="${cat}" data-id="${item}" class="${isFolded ? 'hidden-item' : ''}">
                     <td><div class="name-cell" style="padding-left: 32px;">
                     <span class="row-num">${iIdx+1})</span><span class="name-text">${item}</span>
@@ -285,7 +281,7 @@ function addDragEvents() {
         if (isLocked) return;
         target.classList.add('dragging');
         if (target.dataset.type === 'category') {
-            draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
+            draggedRows = [target, ...document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`)];
         } else {
             draggedRows = [target];
         }
@@ -305,7 +301,7 @@ function addDragEvents() {
         const offset = y - bounding.top;
 
         if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-            const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
+            const targetItems = document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`);
             const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
             offset > bounding.height / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
         } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {

@@ -96,26 +96,25 @@ tr.dragging { opacity: 0.4; background-color: #e0edff !important; }
 
 .category-row td { background-color: #f0f7ff; color: #007bff; }
 
-/* 접기/펼치기 버튼 스타일 */
+/* 접기/펼치기 버튼 모바일 최적화 */
 .fold-btn {
     background: transparent;
     border: none;
     color: #007bff;
-    padding: 0 4px;
-    font-size: 0.8rem;
+    padding: 0;
+    margin-right: 4px;
+    font-size: 1.1rem; /* 모바일에서 더 잘 보이게 크기 키움 */
     cursor: pointer;
-    width: 24px;
-    height: 24px;
+    width: 32px; /* 터치 영역 확장 */
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    -webkit-appearance: none;
 }
 
-/* 숨겨진 아이템 행 처리 */
-tr.hidden-item {
-    display: none;
-}
+tr.hidden-item { display: none; }
 
 body.is-unlocked .category-row .name-text::before { content: '≡'; margin-right: 8px; color: #007bff; cursor: grab; font-weight: bold; }
 
