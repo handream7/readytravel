@@ -224,7 +224,6 @@ async function syncOrderToDB() {
     await update(ref(database), updates);
 }
 
-// 터치 이벤트 대응 드래그 앤 드롭
 function addDragEvents() {
     const rows = document.querySelectorAll('#checklistBody tr');
     let draggedRows = [];
@@ -233,7 +232,7 @@ function addDragEvents() {
     const onDragStart = (target) => {
         target.classList.add('dragging');
         if (target.dataset.type === 'category') {
-            draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
+            draggedRows = [target, ...document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`)];
         } else {
             draggedRows = [target];
         }
@@ -252,7 +251,7 @@ function addDragEvents() {
         const offset = y - bounding.top;
 
         if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-            const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
+            const targetItems = document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`);
             const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
             offset > bounding.height / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
         } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
@@ -261,7 +260,6 @@ function addDragEvents() {
     };
 
     rows.forEach(row => {
-        // 데스크탑 이벤트
         row.ondragstart = (e) => onDragStart(row);
         row.ondragend = onDragEnd;
         row.ondragover = (e) => {
@@ -269,16 +267,15 @@ function addDragEvents() {
             onDragMove(e.clientY, e.target.closest('tr'));
         };
 
-        // 모바일 터치 이벤트
         row.addEventListener('touchstart', (e) => {
-            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
             initialTouchY = e.touches[0].clientY;
             onDragStart(row);
         }, { passive: false });
 
         row.addEventListener('touchmove', (e) => {
             if (draggedRows.length === 0) return;
-            e.preventDefault(); // 스크롤 방지
+            e.preventDefault();
             const touchY = e.touches[0].clientY;
             const target = document.elementFromPoint(e.touches[0].clientX, touchY)?.closest('tr');
             onDragMove(touchY, target);
