@@ -22,6 +22,17 @@ let travels = ['first'];
 let selectedTravelToLoad = '';
 const statusCycle = { 'X': '△', '△': 'O', 'O': 'X' };
 
+onValue(ref(database, 'travelNames'), (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        travels = Object.keys(data);
+        const select = document.getElementById('travelSelect');
+        const currentVal = select.value;
+        select.innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
+        if (travels.includes(currentVal)) select.value = currentVal;
+    }
+});
+
 window.switchUser = (user) => {
     currentUser = user;
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -41,11 +52,10 @@ function refreshSelectMenus() {
 window.addNewTravel = () => {
     const name = prompt("새 여행 이름을 입력하세요:");
     if (name) {
-        if (!travels.includes(name)) travels.push(name);
-        document.getElementById('travelSelect').innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
-        currentTravel = name;
-        document.getElementById('travelSelect').value = name;
-        loadData();
+        set(ref(database, `travelNames/${name}`), true).then(() => {
+            currentTravel = name;
+            loadData();
+        });
     }
 };
 
@@ -54,20 +64,18 @@ window.saveCurrentList = () => {
     if (!title) return;
     get(ref(database, `travels/${currentTravel}/${currentUser}`)).then((snapshot) => {
         if (snapshot.exists()) {
-            set(ref(database, `travels/${title}/${currentUser}`), snapshot.val()).then(() => {
+            set(ref(database, `travels/${title}/${currentUser}`), snapshot.val());
+            set(ref(database, `travelNames/${title}`), true).then(() => {
                 alert(`'${title}' 저장 완료!`);
-                if (!travels.includes(title)) travels.push(title);
-                document.getElementById('travelSelect').innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
             });
         }
     });
 };
 
-// 새목록 기능: 현재 사용자 리스트 초기화
 window.resetCurrentList = () => {
-    if (confirm("정말 현재 체크리스트를 싹 지우시겠습니까?\n(삭제된 내용은 복구할 수 없습니다.)")) {
+    if (confirm("정말 현재 체크리스트를 싹 지우시겠습니까?")) {
         remove(ref(database, `travels/${currentTravel}/${currentUser}`)).then(() => {
-            alert("체크리스트가 초기화되었습니다.");
+            alert("초기화되었습니다.");
         });
     }
 };
@@ -113,7 +121,8 @@ window.openLoadModal = () => {
 window.setSelectToLoad = (name) => {
     selectedTravelToLoad = name;
     document.querySelectorAll('.data-list li').forEach(li => li.classList.remove('selected'));
-    document.getElementById(`list-${name}`).classList.add('selected');
+    const target = document.getElementById(`list-${name}`);
+    if (target) target.classList.add('selected');
 };
 
 window.confirmLoadTravel = () => {
@@ -132,7 +141,10 @@ window.uploadBulkCategories = () => {
     const cats = text.split('\n').map(c => c.trim()).filter(c => c !== "");
     const updates = {};
     cats.forEach(c => { updates[`travels/${currentTravel}/${currentUser}/${c}/_isCategory`] = true; });
-    update(ref(database), updates).then(() => { document.getElementById('bulkCategoryText').value = ''; });
+    update(ref(database), updates).then(() => { 
+        document.getElementById('bulkCategoryText').value = ''; 
+        alert(`총 ${cats.length}개의 카테고리가 생성되었습니다.`);
+    });
 };
 
 window.uploadBulkItems = () => {
@@ -146,7 +158,10 @@ window.uploadBulkItems = () => {
             prep_out: 'X', done_out: 'X', prep_in: 'X', done_in: 'X'
         };
     });
-    update(ref(database), updates).then(() => { document.getElementById('bulkItemText').value = ''; });
+    update(ref(database), updates).then(() => { 
+        document.getElementById('bulkItemText').value = ''; 
+        alert(`총 ${items.length}개의 아이템이 생성되었습니다.`);
+    });
 };
 
 window.closeModal = (id) => document.getElementById(id).style.display = 'none';
