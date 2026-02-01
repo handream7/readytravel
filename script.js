@@ -24,22 +24,13 @@ let currentUnsubscribe = null;
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
-// 여행 목록 업데이트 및 드롭다운 관리
 onValue(ref(database, 'travelNames'), (snapshot) => {
     const data = snapshot.val();
     const select = document.getElementById('travelSelect');
-    
-    if (data) {
-        travels = Object.keys(data);
-    } else {
-        // 데이터가 아예 없는 경우 초기 구조 생성
-        travels = ['첫여행'];
-        set(ref(database, 'travelNames/첫여행'), true);
-    }
-
+    if (data) travels = Object.keys(data);
+    else travels = ['첫여행'];
     const currentVal = select.value || currentTravel;
     select.innerHTML = travels.map(t => `<option value="${t}">${t}</option>`).join('');
-    
     if (travels.includes(currentVal)) {
         select.value = currentVal;
         currentTravel = currentVal;
@@ -193,49 +184,87 @@ window.confirmDelete = (category, item = null) => {
 window.loadData = () => {
     const select = document.getElementById('travelSelect');
     if (select && select.value) currentTravel = select.value;
-    
     if (currentUnsubscribe) currentUnsubscribe();
-
     currentUnsubscribe = onValue(ref(database, `travels/${currentTravel}/${currentUser}`), (snapshot) => {
         const data = snapshot.val();
         const tbody = document.getElementById('checklistBody');
         tbody.innerHTML = '';
         categories = [];
         if (!data) { refreshSelectMenus(); return; }
-
         Object.keys(data).sort().forEach((cat, cIdx) => {
             if (cat === '_isCategory') return;
             categories.push(cat);
-            tbody.innerHTML += `
-                <tr class="category-row">
-                    <td colspan="3">
-                        <div class="name-cell">
-                            <span class="name-text">${cIdx + 1}. ${cat}</span>
-                            <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button>
-                        </div>
-                    </td>
-                </tr>`;
-            
+            tbody.innerHTML += `<tr class="category-row" draggable="true" data-type="category" data-id="${cat}">
+                <td colspan="3"><div class="name-cell"><span class="name-text">${cIdx + 1}. ${cat}</span>
+                <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button></div></td></tr>`;
             Object.keys(data[cat]).filter(k => k !== '_isCategory').sort().forEach((item, iIdx) => {
                 const vals = data[cat][item];
-                const outVal = vals.out || 'X';
-                const inVal = vals.in || 'X';
-                
-                tbody.innerHTML += `
-                    <tr>
-                        <td>
-                            <div class="name-cell">
-                                <span class="name-text">${iIdx + 1}) ${item}</span>
-                                <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button>
-                            </div>
-                        </td>
-                        <td class="status-col"><button class="status-btn status-${outVal}" onclick="updateStatus('${cat}', '${item}', 'out', '${outVal}')">${outVal}</button></td>
-                        <td class="status-col"><button class="status-btn status-${inVal}" onclick="updateStatus('${cat}', '${item}', 'in', '${inVal}')">${inVal}</button></td>
-                    </tr>`;
+                tbody.innerHTML += `<tr draggable="true" data-type="item" data-category="${cat}" data-id="${item}">
+                    <td><div class="name-cell"><span class="name-text">${iIdx + 1}) ${item}</span>
+                    <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button></div></td>
+                    <td class="status-col"><button class="status-btn status-${vals.out || 'X'}" onclick="updateStatus('${cat}', '${item}', 'out', '${vals.out || 'X'}')">${vals.out || 'X'}</button></td>
+                    <td class="status-col"><button class="status-btn status-${vals.in || 'X'}" onclick="updateStatus('${cat}', '${item}', 'in', '${vals.in || 'X'}')">${vals.in || 'X'}</button></td></tr>`;
             });
         });
         refreshSelectMenus();
+        addDragEvents();
     });
 };
+
+function addDragEvents() {
+    const tbody = document.getElementById('checklistBody');
+    const rows = document.querySelectorAll('#checklistBody tr');
+    let draggedRows = []; // 카테고리 뭉치를 담을 배열
+
+    rows.forEach(row => {
+        row.addEventListener('dragstart', (e) => {
+            row.classList.add('dragging');
+            if (row.dataset.type === 'category') {
+                const catId = row.dataset.id;
+                // 해당 카테고리와 그 아래 아이템들을 모두 선택
+                draggedRows = [row, ...document.querySelectorAll(`tr[data-type="item"][data-category="${catId}"]`)];
+                draggedRows.forEach(r => r.classList.add('dragging'));
+            } else {
+                draggedRows = [row];
+            }
+        });
+
+        row.addEventListener('dragend', () => {
+            draggedRows.forEach(r => r.classList.remove('dragging'));
+            draggedRows = [];
+        });
+
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const target = e.target.closest('tr');
+            if (!target || draggedRows.includes(target)) return;
+
+            // 같은 타입끼리만 이동 가능하게 하거나, 카테고리 이동 시 뭉치 전체 이동
+            if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
+                const bounding = target.getBoundingClientRect();
+                const offset = e.clientY - bounding.top;
+                
+                // 타겟 카테고리의 아이템들 중 마지막 행 찾기
+                const targetCatId = target.dataset.id;
+                const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${targetCatId}"]`);
+                const lastItemOfTarget = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
+
+                if (offset > bounding.height / 2) {
+                    // 타겟 카테고리 뭉치 뒤로 이동
+                    lastItemOfTarget.after(...draggedRows);
+                } else {
+                    // 타겟 카테고리 뭉치 앞으로 이동
+                    target.before(...draggedRows);
+                }
+            } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
+                // 같은 카테고리 내 아이템 순서 변경
+                const bounding = target.getBoundingClientRect();
+                const offset = e.clientY - bounding.top;
+                if (offset > bounding.height / 2) target.after(draggedRows[0]);
+                else target.before(draggedRows[0]);
+            }
+        });
+    });
+}
 
 window.loadData();

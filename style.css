@@ -30,11 +30,16 @@ header {
 .top-row .left-group {
     display: flex;
     width: 100%;
-    gap: 6px;
+    gap: 8px;
+    align-items: center;
 }
 
+/* 드롭다운 글자 길이에 맞게 설정 */
 #travelSelect {
-    flex: 1;
+    width: auto;
+    min-width: 80px;
+    max-width: 180px;
+    flex: 0 1 auto;
 }
 
 .add-travel-btn {
@@ -136,6 +141,12 @@ td {
     vertical-align: middle;
 }
 
+/* 드래그 앤 드롭 시각 효과 */
+tr.dragging {
+    opacity: 0.5;
+    background-color: #e0edff;
+}
+
 .status-col { width: 60px; text-align: center; }
 
 .name-cell {
@@ -149,6 +160,14 @@ td {
     font-size: 0.9rem;
     font-weight: 600;
     word-break: break-all;
+}
+
+/* 드래그 핸들 느낌 추가 */
+.category-row .name-text::before {
+    content: '≡';
+    margin-right: 8px;
+    color: #007bff;
+    cursor: grab;
 }
 
 .mini-del-btn {
@@ -197,52 +216,3 @@ td {
     width: 90%;
     max-width: 400px;
 }
-
-.modal-large { max-width: 750px; width: 95%; }
-
-.cat-preview-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
-}
-
-.cat-tag {
-    background: #e0edff;
-    color: #007bff;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-}
-
-.load-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-top: 15px;
-}
-
-@media (max-width: 768px) {
-    .load-grid { grid-template-columns: 1fr; }
-}
-
-.grid-col {
-    background: #f8fbff;
-    padding: 10px;
-    border-radius: 10px;
-}
-
-.data-list {
-    list-style: none;
-    padding: 0;
-    max-height: 150px;
-    overflow-y: auto;
-}
-
-.data-list li {
-    padding: 8px;
-    border-bottom: 1px solid #eef2f7;
-    cursor: pointer;
-}
-
-.data-list li.selected { background: #007bff; color: white; }
