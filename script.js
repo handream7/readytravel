@@ -21,6 +21,7 @@ let categories = [];
 let travels = [];
 let selectedVersionToLoad = '';
 let currentUnsubscribe = null;
+let isLocked = true; // 순서 잠금 상태 변수 추가
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
@@ -37,6 +38,21 @@ onValue(ref(database, 'travelNames'), (snapshot) => {
     currentTravel = select.value;
 });
 
+// 순서 잠금 토글 함수
+window.toggleLock = () => {
+    isLocked = !isLocked;
+    const lockBtn = document.getElementById('lockBtn');
+    if (isLocked) {
+        lockBtn.innerText = '순서잠금 🔒';
+        lockBtn.classList.remove('unlocked');
+        document.body.classList.remove('is-unlocked');
+    } else {
+        lockBtn.innerText = '순서이동 🔓';
+        lockBtn.classList.add('unlocked');
+        document.body.classList.add('is-unlocked');
+    }
+};
+
 window.switchUser = (user) => {
     currentUser = user;
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -46,17 +62,17 @@ window.switchUser = (user) => {
 };
 
 window.addNewTravel = () => {
-    const name = prompt("새로운 여행 틀 이름을 입력하세요 (예: 태국여행):");
+    const name = prompt("새로운 여행 이름을 입력하세요:");
     if (name) set(ref(database, `travelNames/${name}`), true);
 };
 
 window.saveCurrentList = () => {
-    const versionName = prompt("저장할 버전 이름을 입력하세요 (예: 버전1):");
+    const versionName = prompt("저장할 버전 이름을 입력하세요:");
     if (!versionName) return;
     get(ref(database, `travels/${currentTravel}/${currentUser}/current`)).then((snap) => {
         if (snap.exists()) {
             set(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${versionName}`), snap.val())
-                .then(() => alert(`'${currentTravel}' 여행 내에 '${versionName}' 저장 완료!`));
+                .then(() => alert(`'${versionName}' 저장 완료!`));
         } else alert("저장할 내용이 없습니다.");
     });
 };
@@ -134,7 +150,7 @@ window.uploadBulkCategories = () => {
     cats.forEach((c, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${c}/_isCategory`] = { index: categories.length + idx }; });
     update(ref(database), updates).then(() => {
         document.getElementById('bulkCategoryText').value = '';
-        alert("일괄 생성 완료!");
+        alert("카테고리 일괄 생성 완료!");
     });
 };
 
@@ -147,7 +163,7 @@ window.uploadBulkItems = () => {
     items.forEach((item, idx) => { updates[`travels/${currentTravel}/${currentUser}/current/${cat}/${item}`] = { out: 'X', in: 'X', index: idx }; });
     update(ref(database), updates).then(() => {
         document.getElementById('bulkItemText').value = '';
-        alert("일괄 생성 완료!");
+        alert("아이템 일괄 생성 완료!");
     });
 };
 
@@ -230,9 +246,10 @@ function addDragEvents() {
     let initialTouchY = 0;
 
     const onDragStart = (target) => {
+        if (isLocked) return; // 잠금 상태면 시작 안함
         target.classList.add('dragging');
         if (target.dataset.type === 'category') {
-            draggedRows = [target, ...document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`)];
+            draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
         } else {
             draggedRows = [target];
         }
@@ -240,18 +257,19 @@ function addDragEvents() {
     };
 
     const onDragEnd = async () => {
+        if (draggedRows.length === 0) return;
         draggedRows.forEach(r => r.classList.remove('dragging'));
         draggedRows = [];
         await syncOrderToDB();
     };
 
     const onDragMove = (y, target) => {
-        if (!target || draggedRows.includes(target)) return;
+        if (isLocked || !target || draggedRows.includes(target)) return;
         const bounding = target.getBoundingClientRect();
         const offset = y - bounding.top;
 
         if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-            const targetItems = document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`);
+            const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
             const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
             offset > bounding.height / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
         } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
@@ -268,13 +286,14 @@ function addDragEvents() {
         };
 
         row.addEventListener('touchstart', (e) => {
+            if (isLocked) return; // 잠금 시 터치 이벤트 무시
             if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
             initialTouchY = e.touches[0].clientY;
             onDragStart(row);
         }, { passive: false });
 
         row.addEventListener('touchmove', (e) => {
-            if (draggedRows.length === 0) return;
+            if (isLocked || draggedRows.length === 0) return;
             e.preventDefault();
             const touchY = e.touches[0].clientY;
             const target = document.elementFromPoint(e.touches[0].clientX, touchY)?.closest('tr');
