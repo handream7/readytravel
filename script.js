@@ -23,7 +23,7 @@ let selectedTravelToLoad = '';
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
-// 여행 목록 불러오기
+// 여행 목록 불러오기 (영구 저장용)
 onValue(ref(database, 'travelNames'), (snapshot) => {
     const data = snapshot.val();
     if (data) {
@@ -183,7 +183,7 @@ window.loadData = () => {
                 <tr class="category-row">
                     <td colspan="3">
                         <div class="name-cell">
-                            <span>${cIdx + 1}. ${cat}</span>
+                            <span class="name-text">${cIdx + 1}. ${cat}</span>
                             <button class="mini-del-btn" onclick="confirmDelete('${cat}')">X</button>
                         </div>
                     </td>
@@ -193,9 +193,9 @@ window.loadData = () => {
                 const vals = data[cat][item];
                 tbody.innerHTML += `
                     <tr>
-                        <td style="padding-left:35px;">
+                        <td>
                             <div class="name-cell">
-                                <span>${iIdx + 1}) ${item}</span>
+                                <span class="name-text">${iIdx + 1}) ${item}</span>
                                 <button class="mini-del-btn" onclick="confirmDelete('${cat}', '${item}')">X</button>
                             </div>
                         </td>

@@ -1,142 +1,173 @@
 @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600&display=swap');
 
-/* 기본 설정 */
+/* 전체 기본 설정 */
 body {
     font-family: 'Pretendard', sans-serif;
     margin: 0;
-    padding: 15px;
+    padding: 10px;
     background-color: #f0f7ff;
     color: #334155;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* 헤더 레이아웃 */
+/* 4단 헤더 레이아웃 (모바일 가독성 최적화) */
 header {
     background: #ffffff;
-    padding: 20px;
-    border-radius: 20px;
+    padding: 15px;
+    border-radius: 15px;
     box-shadow: 0 4px 15px rgba(0, 123, 255, 0.1);
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     text-align: center;
 }
 
+/* 각 줄별 스타일 및 정렬 */
 .header-row {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
     width: 100%;
-    gap: 10px;
+    gap: 8px;
 }
 
+/* 줄 사이 구분선 */
 .middle-row, .bottom-row {
     border-top: 1px solid #f1f5f9;
-    padding-top: 12px;
+    padding-top: 10px;
 }
 
-/* 버튼 스타일 */
+/* 버튼 공통 스타일 */
 button {
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     font-weight: 600;
     cursor: pointer;
-    transition: 0.2s;
-    padding: 10px 15px;
-    font-size: 0.9rem;
+    transition: all 0.2s ease-in-out;
+    padding: 10px 12px;
+    font-size: 0.85rem;
     white-space: nowrap;
 }
 
-.btn-main { background-color: #e0edff; color: #007bff; }
-.btn-sub { background-color: #f1f5f9; color: #64748b; }
-.btn-load { background-color: #007bff; color: white; }
-.btn-save { background-color: #10b981; color: white; }
-.btn-reset { background-color: #fee2e2; color: #ef4444; border: 1px solid #fecaca; }
+button:active {
+    transform: scale(0.96);
+}
 
-/* 입력 요소 */
+/* 버튼 색상별 정의 */
+.btn-main { background-color: #e0edff; color: #007bff; }
+.btn-main:hover { background-color: #007bff; color: white; }
+
+.btn-sub { background-color: #f1f5f9; color: #64748b; }
+.btn-sub:hover { background-color: #e2e8f0; }
+
+.btn-load { background-color: #007bff; color: white; }
+.btn-load:hover { background-color: #0056b3; }
+
+.btn-save { background-color: #10b981; color: white; }
+.btn-save:hover { background-color: #059669; }
+
+/* 새목록 버튼: 옅은 빨간색 */
+.btn-reset { 
+    background-color: #fee2e2; 
+    color: #ef4444; 
+    border: 1px solid #fecaca; 
+}
+.btn-reset:hover { background-color: #fecaca; }
+
+/* 입력 요소 스타일 */
 #travelSelect, select, input, textarea {
     padding: 10px;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 2px solid #eef2f7;
     font-weight: 600;
     background-color: white;
     width: 100%;
     box-sizing: border-box;
     font-size: 1rem;
+    font-family: inherit;
 }
 
-/* 유저 탭 */
+/* 유저 전환 탭 */
 .user-tabs {
     display: flex;
     background: #f1f5f9;
-    padding: 5px;
-    border-radius: 12px;
+    padding: 4px;
+    border-radius: 10px;
     gap: 4px;
 }
 
 .tab-btn {
-    padding: 8px 16px;
+    padding: 8px 14px;
     background: transparent;
     color: #64748b;
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
 .tab-btn.active {
     background: white;
     color: #007bff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 /* 테이블 디자인 */
 main {
     width: 100%;
     background: white;
-    border-radius: 20px;
+    border-radius: 15px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    overflow-x: auto;
+    overflow: hidden; /* 가로 스크롤 방지 및 라운드 유지 */
 }
 
 table {
     width: 100%;
-    min-width: 600px;
     border-collapse: collapse;
+    table-layout: fixed; /* 셀 너비 고정을 위해 필수 */
 }
 
 th {
     background: #f8fbff;
     color: #475569;
-    font-size: 1rem;
-    padding: 15px 10px;
+    font-size: 0.9rem;
+    padding: 12px 5px;
     border-bottom: 2px solid #eef2f7;
 }
 
 td {
-    padding: 15px 10px;
-    font-size: 1.1rem;
+    padding: 12px 10px;
     border-bottom: 1px solid #f1f5f9;
-    font-weight: 500;
     vertical-align: middle;
 }
 
-/* 너비 고정 */
-.status-col { width: 80px; text-align: center; }
+/* 상태 열 너비 고정 (모바일에서 이름 영역 확보) */
+.status-col {
+    width: 60px;
+    text-align: center;
+}
 
-/* 텍스트 + 삭제버튼 배치 */
+/* 이름 + 삭제버튼 박스 */
 .name-cell {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
 }
 
-/* 빨간색 미니 삭제 버튼 */
+.name-text {
+    font-size: 1.05rem;
+    font-weight: 600;
+    word-break: break-all;
+    line-height: 1.2;
+}
+
+/* 작은 삭제 버튼 (이름 옆 빨간 네모) */
 .mini-del-btn {
     background: #fee2e2;
     color: #ef4444;
     border: none;
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     border-radius: 6px;
     font-size: 12px;
     font-weight: bold;
@@ -149,21 +180,23 @@ td {
 
 .mini-del-btn:hover { background: #fecaca; }
 
-/* 카테고리 행 */
+/* 카테고리 행 스타일 */
 .category-row td {
     background-color: #f0f7ff;
     color: #007bff;
-    font-size: 1.25rem;
-    font-weight: 700;
-    padding: 15px 20px;
 }
 
-/* 상태 버튼 (X / O) */
+.category-row .name-text {
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+/* 체크 버튼 (사이즈 최적화) */
 .status-btn {
-    width: 45px;
-    height: 45px;
-    font-size: 20px;
-    border-radius: 12px;
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+    border-radius: 10px;
     border: 2px solid #e2e8f0;
     background: white;
     display: inline-flex;
@@ -173,9 +206,13 @@ td {
 }
 
 .status-X { color: #cbd5e1; }
-.status-O { color: white; background: #10b981; border-color: #10b981; }
+.status-O { 
+    color: white; 
+    background: #10b981; 
+    border-color: #10b981; 
+}
 
-/* 모달 및 팝업 */
+/* 모달 디자인 */
 .modal {
     display: none;
     position: fixed;
@@ -184,19 +221,22 @@ td {
     z-index: 1000;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(2px);
 }
 
 .modal-content {
     background: white;
-    padding: 25px;
-    border-radius: 24px;
+    padding: 20px;
+    border-radius: 20px;
     width: 90%;
-    max-width: 450px;
+    max-width: 400px;
+    max-height: 85vh;
+    overflow-y: auto;
 }
 
-.modal-large { max-width: 1000px; }
+.modal-large { max-width: 1000px; width: 95%; }
 
+/* 카테고리 미리보기 태그 */
 .current-cats-box {
     margin-bottom: 15px;
     background: #f8f9fa;
@@ -221,31 +261,32 @@ td {
     font-weight: bold;
 }
 
+/* 통합 관리 그리드 */
 .load-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 15px;
-    margin-top: 20px;
+    gap: 10px;
+    margin-top: 15px;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 768px) {
     .load-grid { grid-template-columns: 1fr; }
 }
 
 .grid-col {
     background: #f8fbff;
-    padding: 15px;
-    border-radius: 18px;
+    padding: 12px;
+    border-radius: 12px;
     border: 1px solid #eef2f7;
     text-align: left;
 }
 
-.grid-col h4 { margin-top: 0; color: #007bff; }
+.grid-col h4 { margin: 0 0 10px 0; color: #007bff; font-size: 1rem; }
 
 .data-list {
     list-style: none;
     padding: 0; margin: 0;
-    max-height: 200px;
+    max-height: 150px;
     overflow-y: auto;
 }
 
@@ -253,12 +294,16 @@ td {
     padding: 10px;
     border-bottom: 1px solid #eef2f7;
     cursor: pointer;
+    font-size: 0.9rem;
     background: white;
-    margin-bottom: 5px;
-    border-radius: 8px;
+    margin-bottom: 4px;
+    border-radius: 6px;
 }
 
-.data-list li.selected { background: #007bff; color: white; }
+.data-list li.selected {
+    background: #007bff;
+    color: white;
+}
 
 .modal-buttons {
     margin-top: 20px;
