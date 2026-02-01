@@ -1,32 +1,35 @@
-// Firebase 구성 (사용자의 정보를 입력하세요)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCvwQgyakS9eh9R0TYRODmc5EXJAoCbtAc",
+    authDomain: "readytravel-f4e1c.firebaseapp.com",
+    databaseURL: "https://readytravel-f4e1c-default-rtdb.firebaseio.com",
+    projectId: "readytravel-f4e1c",
+    storageBucket: "readytravel-f4e1c.firebasestorage.app",
+    messagingSenderId: "772163379284",
+    appId: "1:772163379284:web:ad9285538cf9d61c8f8dc1",
+    measurementId: "G-7WBH433JKG"
 };
 
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+// Firebase 초기화
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
 let currentUser = '강민성';
 let currentTravel = 'first';
-
-// 상태 순환: X -> △ -> O -> X
 const statusCycle = { 'X': '△', '△': 'O', 'O': 'X' };
 
-function switchUser(user) {
+// 함수들을 전역(window) 객체에 할당 (HTML 버튼에서 호출 가능하도록)
+window.switchUser = (user) => {
     currentUser = user;
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.innerText === user);
     });
     loadData();
-}
+};
 
-function addNewTravel() {
+window.addNewTravel = () => {
     const name = prompt("새 여행 이름을 입력하세요:");
     if (name) {
         const select = document.getElementById('travelSelect');
@@ -38,44 +41,45 @@ function addNewTravel() {
         currentTravel = name;
         loadData();
     }
-}
+};
 
-function addCategory() {
+window.addCategory = () => {
     const category = prompt("새 카테고리 이름:");
     if (!category) return;
-    const ref = database.ref(`travels/${currentTravel}/${currentUser}/${category}`);
-    ref.set({ _isCategory: true });
-}
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}`), {
+        _isCategory: true
+    });
+};
 
-function addItem() {
+window.addItem = () => {
     const category = prompt("어느 카테고리에 추가할까요?");
     const itemName = prompt("아이템 이름:");
     if (!category || !itemName) return;
     
-    database.ref(`travels/${currentTravel}/${currentUser}/${category}/${itemName}`).set({
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${itemName}`), {
         prep_out: 'X',
         done_out: 'X',
         prep_in: 'X',
         done_in: 'X'
     });
-}
+};
 
-function updateStatus(category, item, field, currentVal) {
+window.updateStatus = (category, item, field, currentVal) => {
     const nextVal = statusCycle[currentVal];
-    database.ref(`travels/${currentTravel}/${currentUser}/${category}/${item}/${field}`).set(nextVal);
-}
+    set(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${item}/${field}`), nextVal);
+};
 
-function deleteItem(category, item) {
+window.deleteItem = (category, item) => {
     if(confirm('삭제하시겠습니까?')) {
-        database.ref(`travels/${currentTravel}/${currentUser}/${category}/${item}`).remove();
+        remove(ref(database, `travels/${currentTravel}/${currentUser}/${category}/${item}`));
     }
-}
+};
 
-function loadData() {
+window.loadData = () => {
     currentTravel = document.getElementById('travelSelect').value;
-    const ref = database.ref(`travels/${currentTravel}/${currentUser}`);
+    const userRef = ref(database, `travels/${currentTravel}/${currentUser}`);
     
-    ref.on('value', (snapshot) => {
+    onValue(userRef, (snapshot) => {
         const data = snapshot.val();
         const tbody = document.getElementById('checklistBody');
         tbody.innerHTML = '';
@@ -104,7 +108,7 @@ function loadData() {
             }
         }
     });
-}
+};
 
 // 초기 로딩
-loadData();
+window.loadData();

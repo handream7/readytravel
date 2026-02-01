@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>여행 체크리스트 - ReadyTravel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <button onclick="addCategory()">카테고리 추가</button>
+            <button onclick="addItem()">아이템 추가</button>
+        </div>
+        <div class="header-right">
+            <select id="travelSelect">
+                <option value="first">첫 여행</option>
+            </select>
+            <button onclick="addNewTravel()">여행 추가</button>
+            <button onclick="loadData()" class="btn-load">불러오기</button>
+            <div class="user-tabs">
+                <button class="tab-btn active" onclick="switchUser('강민성')">강민성</button>
+                <button class="tab-btn" onclick="switchUser('이지훈')">이지훈</button>
+            </div>
+        </div>
+    </header>
+
+    <main id="app">
+        <table id="checklistTable">
+            <thead>
+                <tr>
+                    <th>카테고리 / 아이템</th>
+                    <th>출발준비</th>
+                    <th>출발완료</th>
+                    <th>귀국준비</th>
+                    <th>귀국완료</th>
+                    <th>삭제</th>
+                </tr>
+            </thead>
+            <tbody id="checklistBody">
+                </tbody>
+        </table>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
