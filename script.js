@@ -21,7 +21,7 @@ let categories = [];
 let travels = [];
 let selectedVersionToLoad = '';
 let currentUnsubscribe = null;
-let isLocked = true;
+let isLocked = true; // 기본 상태: 잠금
 
 const statusToggle = { 'X': 'O', 'O': 'X' };
 
@@ -137,9 +137,8 @@ window.setVersionToLoad = (name) => {
     document.querySelectorAll('#savedVersionsDisplay li').forEach(li => li.classList.toggle('selected', li.id === `ver-${name}`));
 };
 
-// 버전 개별 삭제 기능 추가
 window.deleteVersion = (event, name) => {
-    event.stopPropagation(); // 부모 li의 클릭 이벤트(선택) 방지
+    event.stopPropagation();
     if (confirm(`'${name}' 버전을 삭제하시겠습니까?`)) {
         remove(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${name}`))
             .then(() => {
@@ -240,6 +239,7 @@ window.loadData = () => {
 };
 
 async function syncOrderToDB() {
+    if (isLocked) return;
     const updates = {};
     let catIdx = 0, itemIdx = 0, currentCat = '';
     document.querySelectorAll('#checklistBody tr').forEach(row => {
@@ -257,13 +257,12 @@ async function syncOrderToDB() {
 function addDragEvents() {
     const rows = document.querySelectorAll('#checklistBody tr');
     let draggedRows = [];
-    let initialTouchY = 0;
 
     const onDragStart = (target) => {
-        if (isLocked) return;
+        if (isLocked) return; // 잠금 상태면 드래그 시작 금지
         target.classList.add('dragging');
         if (target.dataset.type === 'category') {
-            draggedRows = [target, ...document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`)];
+            draggedRows = [target, ...document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`)];
         } else {
             draggedRows = [target];
         }
@@ -271,7 +270,7 @@ function addDragEvents() {
     };
 
     const onDragEnd = async () => {
-        if (draggedRows.length === 0) return;
+        if (isLocked || draggedRows.length === 0) return;
         draggedRows.forEach(r => r.classList.remove('dragging'));
         draggedRows = [];
         await syncOrderToDB();
@@ -283,7 +282,7 @@ function addDragEvents() {
         const offset = y - bounding.top;
 
         if (draggedRows[0].dataset.type === 'category' && target.dataset.type === 'category') {
-            const targetItems = document.querySelectorAll(`tr[data-type="item"][data-category="${target.dataset.id}"]`);
+            const targetItems = document.querySelectorAll(`tr[data-type=\"item\"][data-category=\"${target.dataset.id}\"]`);
             const last = targetItems.length > 0 ? targetItems[targetItems.length - 1] : target;
             offset > bounding.height / 2 ? last.after(...draggedRows) : target.before(...draggedRows);
         } else if (draggedRows[0].dataset.type === 'item' && target.dataset.type === 'item' && target.dataset.category === draggedRows[0].dataset.category) {
@@ -292,23 +291,23 @@ function addDragEvents() {
     };
 
     rows.forEach(row => {
-        row.ondragstart = (e) => onDragStart(row);
+        row.ondragstart = () => onDragStart(row);
         row.ondragend = onDragEnd;
         row.ondragover = (e) => {
             e.preventDefault();
             onDragMove(e.clientY, e.target.closest('tr'));
         };
 
+        // 모바일 터치 이벤트 핸들러 강화
         row.addEventListener('touchstart', (e) => {
-            if (isLocked) return;
-            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-            initialTouchY = e.touches[0].clientY;
+            if (isLocked) return; // 잠금 시 무시
+            if (e.target.closest('button') || e.target.closest('select') || e.target.closest('textarea')) return;
             onDragStart(row);
         }, { passive: false });
 
         row.addEventListener('touchmove', (e) => {
             if (isLocked || draggedRows.length === 0) return;
-            e.preventDefault();
+            e.preventDefault(); // 드래그 중 스크롤 방지
             const touchY = e.touches[0].clientY;
             const target = document.elementFromPoint(e.touches[0].clientX, touchY)?.closest('tr');
             onDragMove(touchY, target);
