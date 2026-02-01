@@ -63,6 +63,7 @@ button {
     font-weight: 600;
     background-color: white;
     box-sizing: border-box;
+    width: 100%; /* 모든 입력창 너비 100% */
 }
 
 .user-tabs { display: flex; background: #f1f5f9; padding: 3px; border-radius: 8px; gap: 3px; }
@@ -92,7 +93,6 @@ tr.dragging { opacity: 0.4; background-color: #e0edff !important; }
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
 .modal-content { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 450px; }
 
-/* 모바일 스크롤 가능 모달 설정 */
 .modal-large { max-height: 85vh; display: flex; flex-direction: column; width: 95%; }
 .scrollable-modal { overflow-y: auto; }
 
