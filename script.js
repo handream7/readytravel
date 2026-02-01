@@ -15,7 +15,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// 로컬 스토리지에서 마지막으로 선택한 사용자 가져오기 (없으면 강민성 기본)
 let currentUser = localStorage.getItem('readyTravelUser') || '강민성';
 let currentTravel = '첫여행';
 let categories = [];
@@ -39,8 +38,6 @@ onValue(ref(database, 'travelNames'), (snapshot) => {
     if (travels.includes(currentVal)) select.value = currentVal;
     else select.value = travels[0];
     currentTravel = select.value;
-    
-    // 초기 로드 시 탭 활성화 상태 동기화
     updateUserTabUI();
 });
 
@@ -72,7 +69,6 @@ window.toggleFold = (event, catId) => {
     if (btn) btn.innerText = foldedCategories.has(catId) ? '▶' : '▼';
 };
 
-// 사용자 UI 탭 업데이트 전용 함수
 function updateUserTabUI() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -82,7 +78,6 @@ function updateUserTabUI() {
 
 window.switchUser = (user) => {
     currentUser = user;
-    // 로컬 스토리지에 현재 사용자 저장 (새로고침해도 유지되게 함)
     localStorage.setItem('readyTravelUser', user);
     updateUserTabUI();
     loadData();
@@ -93,13 +88,14 @@ window.addNewTravel = () => {
     if (name) set(ref(database, `travelNames/${name}`), true);
 };
 
+// [수정] 모든 여행이 공유하는 globalSavedLists 경로에 저장
 window.saveCurrentList = () => {
-    const versionName = prompt("저장할 버전 이름을 입력하세요:");
+    const versionName = prompt("저장할 버전 이름을 입력하세요 (모든 여행에서 공유됨):");
     if (!versionName) return;
     get(ref(database, `travels/${currentTravel}/${currentUser}/current`)).then((snap) => {
         if (snap.exists()) {
-            set(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${versionName}`), snap.val())
-                .then(() => alert(`'${versionName}' 저장 완료!`));
+            set(ref(database, `globalSavedLists/${currentUser}/${versionName}`), snap.val())
+                .then(() => alert(`'${versionName}' 저장 완료! 이제 다른 여행에서도 불러올 수 있습니다.`));
         } else alert("저장할 내용이 없습니다.");
     });
 };
@@ -153,8 +149,9 @@ window.saveItem = () => {
     });
 };
 
+// [수정] globalSavedLists에서 버전 목록을 가져옴
 window.openLoadModal = () => {
-    onValue(ref(database, `travels/${currentTravel}/${currentUser}/savedLists`), (snap) => {
+    onValue(ref(database, `globalSavedLists/${currentUser}`), (snap) => {
         const display = document.getElementById('savedVersionsDisplay');
         if (snap.exists()) {
             display.innerHTML = Object.keys(snap.val()).map(v => 
@@ -176,13 +173,13 @@ window.setVersionToLoad = (name) => {
 window.deleteVersion = (event, name) => {
     event.stopPropagation();
     if (confirm(`'${name}' 버전을 삭제하시겠습니까?`)) {
-        remove(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${name}`));
+        remove(ref(database, `globalSavedLists/${currentUser}/${name}`));
     }
 };
 
 window.confirmLoadVersion = () => {
     if (!selectedVersionToLoad) return alert("불러올 버전을 선택하세요.");
-    get(ref(database, `travels/${currentTravel}/${currentUser}/savedLists/${selectedVersionToLoad}`)).then(snap => {
+    get(ref(database, `globalSavedLists/${currentUser}/${selectedVersionToLoad}`)).then(snap => {
         set(ref(database, `travels/${currentTravel}/${currentUser}/current`), snap.val());
         closeModal('loadModal');
     });
