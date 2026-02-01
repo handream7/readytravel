@@ -15,6 +15,9 @@
                 </select>
                 <button class="btn-sub" onclick="addNewTravel()">여행 추가 +</button>
             </div>
+        </div>
+
+        <div class="header-row middle-row">
             <div class="user-tabs">
                 <button class="tab-btn active" onclick="switchUser('강민성')">강민성</button>
                 <button class="tab-btn" onclick="switchUser('이지훈')">이지훈</button>
@@ -23,9 +26,10 @@
 
         <div class="header-row bottom-row">
             <div class="action-group">
+                <button class="btn-load" onclick="openLoadModal()">불러오기 / 대량 업로드 ↻</button>
+                <button class="btn-save" onclick="saveCurrentList()">목록 저장하기 💾</button>
                 <button class="btn-main" onclick="addCategory()">카테고리 추가 +</button>
                 <button class="btn-main" onclick="addItem()">아이템 추가 +</button>
-                <button class="btn-load" onclick="openLoadModal()">불러오기 / 업로드 ↻</button>
             </div>
         </div>
     </header>
@@ -48,11 +52,11 @@
 
     <div id="itemModal" class="modal">
         <div class="modal-content">
-            <h3>아이템 추가</h3>
+            <h3>단일 아이템 추가</h3>
             <label>카테고리 선택</label>
             <select id="categorySelect"></select>
             <label>아이템 이름</label>
-            <input type="text" id="newItemName" placeholder="예: 여권, 보조배터리">
+            <input type="text" id="newItemName" placeholder="예: 여권">
             <div class="modal-buttons">
                 <button class="btn-load" onclick="saveItem()">저장</button>
                 <button class="btn-sub" onclick="closeModal('itemModal')">취소</button>
@@ -61,15 +65,26 @@
     </div>
 
     <div id="loadModal" class="modal">
-        <div class="modal-content">
-            <h3>데이터 불러오기 / 업로드</h3>
-            <div class="upload-section">
-                <label>줄글로 대량 추가 (한 줄에 하나씩)</label>
-                <select id="bulkCategorySelect" style="margin-bottom: 5px;"></select>
-                <textarea id="bulkText" rows="5" placeholder="여권&#10;지갑&#10;보조배터리&#10;형태로 입력하세요"></textarea>
-                <button class="btn-load" style="width:100%; margin-top:10px;" onclick="uploadBulk()">대량 추가하기</button>
+        <div class="modal-content modal-large">
+            <h3>데이터 통합 관리</h3>
+            <div class="load-grid">
+                <div class="grid-col">
+                    <h4>📁 기존 여행 목록</h4>
+                    <ul id="travelListDisplay" class="data-list"></ul>
+                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="confirmLoadTravel()">선택 목록 불러오기 (확인)</button>
+                </div>
+                <div class="grid-col">
+                    <h4>📂 카테고리 대량 추가</h4>
+                    <textarea id="bulkCategoryText" rows="8" placeholder="의류&#10;세면도구"></textarea>
+                    <button class="btn-main" style="width:100%; margin-top:10px;" onclick="uploadBulkCategories()">카테고리 생성</button>
+                </div>
+                <div class="grid-col">
+                    <h4>📦 아이템 대량 추가</h4>
+                    <select id="bulkItemCategorySelect" style="margin-bottom: 5px;"></select>
+                    <textarea id="bulkItemText" rows="8" placeholder="여권&#10;보조배터리"></textarea>
+                    <button class="btn-load" style="width:100%; margin-top:10px;" onclick="uploadBulkItems()">아이템 생성</button>
+                </div>
             </div>
-            <hr style="margin: 20px 0; border: 0.5px solid #eee;">
             <div class="modal-buttons">
                 <button class="btn-sub" onclick="closeModal('loadModal')">닫기</button>
             </div>
